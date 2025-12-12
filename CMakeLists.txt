@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10.0)
 project(OptiSik VERSION 0.1.0 LANGUAGES C CXX)
 
-add_executable(OptiSik main.cpp)
+add_executable(OptiSik test.cpp)
 
