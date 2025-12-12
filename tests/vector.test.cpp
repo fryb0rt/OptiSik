@@ -1,20 +1,10 @@
+#include "test_utils.h"
 #include "vector.test.h"
 #include "../data/vector.h"
 #include <iostream>
 #include <cmath>
 
 using Vec = Vector<double>;
-
-static bool close(double a, double b, double eps = 1e-9) {
-  return std::abs(a - b) <= eps;
-}
-
-void check(bool cond, const char* msg) {
-  if (!cond) {
-    std::cout << "ERROR: " << msg << std::endl;
-    __debugbreak();
-  }
-}
 
 void testBasics() {
   Vec v1(std::vector<double>{1, 2, 3});
