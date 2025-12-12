@@ -4,7 +4,7 @@
 #include <vector>
 
 /// Splits a string by the given character delimiter
-std::vector<std::string> split(const std::string &s, char c,
+inline std::vector<std::string> split(const std::string &s, char c,
                                bool keepEmpty = false) {
   std::vector<std::string> result;
   int start = 0, end = int(s.size());
