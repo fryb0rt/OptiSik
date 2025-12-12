@@ -3,6 +3,8 @@
 #include <string>
 #include <vector>
 
+namespace OptiSik {
+
 /// Splits a string by the given character delimiter
 inline std::vector<std::string> split(const std::string &s, char c,
                                bool keepEmpty = false) {
@@ -43,3 +45,5 @@ template <typename T> std::vector<T> parseList(const std::string &s, char sep) {
   }
   return res;
 }
+
+} // namespace OptiSik

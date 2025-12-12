@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include "../data/vector.h"
 
+using namespace OptiSik;
 using Vec = Vector<double>;
 
 TEST(VectorTest, DotAndScalar) {

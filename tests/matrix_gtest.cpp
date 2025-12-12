@@ -2,6 +2,7 @@
 #include "../data/matrix.h"
 #include "../data/vector.h"
 
+using namespace OptiSik;
 using Mat = Matrix<double>;
 using Vec = Vector<double>;
 

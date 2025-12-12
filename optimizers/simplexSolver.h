@@ -5,6 +5,8 @@
 #include <iostream>
 #include <vector>
 
+namespace OptiSik {
+
 /// Helper struct for integer operations
 template <typename T, typename TInteger> struct IntegerOperations {
   static T removeFraction(T value) { return T(TInteger(value)); }
@@ -705,3 +707,5 @@ private:
     return newConstraints;
   }
 };
+
+} // namespace OptiSik

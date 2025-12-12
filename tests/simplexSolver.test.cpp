@@ -2,6 +2,7 @@
 #include "../optimizers/simplexSolver.h"
 #include "../utils/stringUtils.h"
 
+using namespace OptiSik;
 using SS = SimplexSolver<double>;
 
 void testCommon(const SS &solver, const SS::Operation operation,

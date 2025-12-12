@@ -5,6 +5,8 @@
 #include <ostream>
 #include "vector.h"
 
+namespace OptiSik {
+
 template<typename T>
 class Matrix {
     std::vector<std::vector<T>> mData;
@@ -184,3 +186,5 @@ public:
         return os;
     }
 };
+
+} // namespace OptiSik
