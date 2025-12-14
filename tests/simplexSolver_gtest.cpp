@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
-#include "../optimizers/simplexSolver.h"
-#include "../utils/stringUtils.h"
+#include "optimizers/simplexSolver.h"
+#include "utils/stringUtils.h"
 
 using namespace OptiSik;
 using SS = SimplexSolver<double>;

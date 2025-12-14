@@ -4,27 +4,20 @@
 #include <cstdint>
 #include <iostream>
 #include <vector>
+#include <optional>
+#include "utils/exception.h"
+#include "utils/mathUtils.h"
 
 namespace OptiSik {
-
-/// Helper struct for integer operations
-template <typename T, typename TInteger> struct IntegerOperations {
-  static T removeFraction(T value) { return T(TInteger(value)); }
-};
-
-/// Helper struct for tolerance value
-template <typename T> struct Tolerance {
-  static constexpr T tolerance = T(1e-6f);
-};
 
 /// Simplex solver for linear programming problems
 ///	Handles both integer and non-integer variables
 ///	Handles all types of constraints (<=, >=, =)
 /// Internally uses the original simplex algorithm and thus might
 /// not be efficient for large matrices.
-template <typename T, typename TInteger = int64_t> class SimplexSolver {
+template <typename T, typename TInteger = int64_t, typename TTolerance = Tolerance<T>> class SimplexSolver {
   using IntegerOperations = IntegerOperations<T, TInteger>;
-  static constexpr T tolerance = Tolerance<T>::tolerance;
+  static constexpr T tolerance = TTolerance::tolerance;
 
 public:
   /// Specifies the type of constraint
@@ -63,8 +56,8 @@ private:
     VariableType type;
 
     /// If this variable was added during conversion to standard form, this
-    /// points to the original variable Otherwise -1
-    int originalIndex;
+    /// points to the original variable Otherwise std::nullopt
+    std::optional<size_t> originalIndex;
   };
 
   /// List of optimized variables
@@ -76,12 +69,12 @@ private:
   Constraints mConstraints;
 
   /// Number of original variables
-  const int mVariableCount;
+  const size_t mVariableCount;
 
 public:
   /// Creates a simplex solver with the given number of variables
   /// Initializes all variables to be float, have cost 1 and non-negative bounds
-  SimplexSolver(const int variableCount)
+  SimplexSolver(const size_t variableCount)
       : mVariables(variableCount, {.cost = T(1),
                                    .bounds = VariableBounds::NON_NEGATIVE,
                                    .type = VariableType::FLOAT,
@@ -98,10 +91,10 @@ public:
   }
 
   /// Sets the properties of a variable at the given index
-  void setVariable(const int index, const T cost,
+  void setVariable(const size_t index, const T cost,
                    const VariableBounds bounds = VariableBounds::NON_NEGATIVE,
                    const VariableType type = VariableType::FLOAT) {
-    assert(index >= 0 && index < int(mVariables.size()));
+    assert(index >= 0 && index < mVariables.size());
     mVariables[index].cost = cost;
     mVariables[index].bounds = bounds;
     mVariables[index].type = type;
@@ -111,7 +104,7 @@ public:
   /// constraints)
   void print() const {
     std::cout << "Variables" << std::endl;
-    for (int i = 0; i < int(mVariables.size()); ++i) {
+    for (size_t i = 0; i < mVariables.size(); ++i) {
       printVariable(i);
       std::cout << std::endl;
     }
@@ -129,8 +122,8 @@ public:
   /// algorithm
   void convertToStandardForm() {
     // Find all variables that are not non-negative
-    std::vector<int> newVars;
-    for (int i = 0; i < int(mVariables.size()); ++i) {
+    std::vector<size_t> newVars;
+    for (size_t i = 0; i < mVariables.size(); ++i) {
       switch (mVariables[i].bounds) {
       case VariableBounds::NON_NEGATIVE:
         break;
@@ -152,7 +145,7 @@ public:
       mVariables[i].bounds = VariableBounds::NON_NEGATIVE;
     }
     // Add new variables needed to convert to non-negative
-    for (int originalIndex : newVars) {
+    for (size_t originalIndex : newVars) {
       Variable v;
       v.cost = -mVariables[originalIndex].cost;
       v.type = mVariables[originalIndex].type;
@@ -192,7 +185,7 @@ public:
     T cost;
 
     void print() const {
-      for (int i = 0; i < int(variables.size()); ++i) {
+      for (size_t i = 0; i < variables.size(); ++i) {
         std::cout << char('a' + i) << " = " << variables[i] << std::endl;
       }
       std::cout << "Cost = " << cost << std::endl;
@@ -225,12 +218,12 @@ public:
       if (!result.isBetter(bestResult, operation)) {
         return;
       }
-      if (int index = solver.findTypeViolation(result); index != -1) {
+      if (const auto index = solver.findTypeViolation(result); index != std::nullopt) {
         const T bound =
-            IntegerOperations::removeFraction(result.variables[index]);
+            IntegerOperations::removeFraction(result.variables[*index]);
         stack.push_back(
-            addLowerBound(solver.mConstraints, index, bound + T(1)));
-        stack.push_back(addUpperBound(solver.mConstraints, index, bound));
+            addLowerBound(solver.mConstraints, *index, bound + T(1)));
+        stack.push_back(addUpperBound(solver.mConstraints, *index, bound));
       } else {
         bestResult = result;
       }
@@ -254,17 +247,17 @@ public:
     if (result.empty()) {
       return result;
     }
-    assert(int(result.variables.size()) == int(mVariables.size()));
+    assert(result.variables.size() == mVariables.size());
     Result newResult;
     newResult.cost = result.cost;
     newResult.variables.resize(mVariableCount, 0);
-    for (int i = 0; i < mVariableCount; ++i) {
+    for (size_t i = 0; i < mVariableCount; ++i) {
       newResult.variables[i] = result.variables[i];
     }
-    for (int i = mVariableCount; i < int(mVariables.size()); ++i) {
+    for (size_t i = mVariableCount; i < mVariables.size(); ++i) {
       const Variable &v = mVariables[i];
-      assert(v.originalIndex != -1);
-      newResult.variables[v.originalIndex] -= result.variables[i];
+      assert(v.originalIndex.has_value());
+      newResult.variables[*v.originalIndex] -= result.variables[i];
     }
     return newResult;
   }
@@ -278,12 +271,12 @@ public:
       }
       return true;
     }
-    assert(int(result.variables.size()) == int(mVariables.size()));
+    assert(result.variables.size() == mVariables.size());
     // Check constraints
     bool ok = true;
     for (const Constraint &c : mConstraints) {
       T value = T(0);
-      for (int i = 0; i < int(c.coefs.size()); ++i) {
+      for (size_t i = 0; i < c.coefs.size(); ++i) {
         value += c.coefs[i] * result.variables[i];
       }
       bool cOk = true;
@@ -310,7 +303,7 @@ public:
     }
     // Check variable type and bounds
     T computedCost = T(0);
-    for (int i = 0; i < int(mVariables.size()); ++i) {
+    for (size_t i = 0; i < mVariables.size(); ++i) {
       const Variable &v = mVariables[i];
       computedCost += v.cost * result.variables[i];
       bool vOk = true;
@@ -370,19 +363,19 @@ private:
     T basisValue;
 
     /// Index of the basis variable associated with this equation
-    int basis;
+    size_t basis;
 
     /// Whether the basis variable is artificial
     bool isBasisArtifical;
 
     /// Subtracts a scaled version of another equation from this equation to
     /// eliminate a variable
-    void subtractScaledEquation(const Equation &eq, const int pivot) {
+    void subtractScaledEquation(const Equation &eq, const size_t pivot) {
       const T multiplier = coefs[pivot];
       if (multiplier == T(0)) {
         return;
       }
-      for (int i = 0; i < int(coefs.size()); ++i) {
+      for (size_t i = 0; i < coefs.size(); ++i) {
         coefs[i] -= multiplier * eq.coefs[i];
       }
       constant -= multiplier * eq.constant;
@@ -392,7 +385,7 @@ private:
     }
 
     /// Moves the pivot variable into the basis of this equation
-    void movePivotToBasis(const int pivot, const T newBasisValue) {
+    void movePivotToBasis(const size_t pivot, const T newBasisValue) {
       // Move pivot variable into basis
       const T div = coefs[pivot];
       for (T &c : coefs) {
@@ -409,43 +402,43 @@ private:
   /// Internal optimization execution - disregards variable types
   /// (integer/float)
   Result executeFloat(const Operation operation) const {
-    const int variableCount = computeVariableCount();
-    int artificialCount = 0;
+    const size_t variableCount = computeVariableCount();
+    size_t artificialCount = 0;
     std::vector<Equation> equations =
         createEquations(variableCount, artificialCount);
     Equation costFunction = createCostEquation(equations, operation);
 
-    const int nonArtificialCount = variableCount - artificialCount;
-    int pivot = findPivot(equations, costFunction, nonArtificialCount);
-    while (pivot != -1) {
+    const size_t nonArtificialCount = variableCount - artificialCount;
+    std::optional<size_t> pivot = findPivot(equations, costFunction, nonArtificialCount);
+    while (pivot.has_value()) {
       // Find minimum pivot variable increase
       T minimum = T(0);
-      int minimumEqIndex = -1;
-      for (int i = 0; i < int(equations.size()); ++i) {
+      std::optional<size_t> minimumEqIndex = std::nullopt;
+      for (size_t i = 0; i < equations.size(); ++i) {
         const Equation &e = equations[i];
-        if (e.coefs[pivot] <= T(0)) {
+        if (e.coefs[*pivot] <= T(0)) {
           continue;
         }
-        const T pivotValue = e.constant / e.coefs[pivot];
-        if (minimumEqIndex == -1 || minimum > pivotValue) {
+        const T pivotValue = e.constant / e.coefs[*pivot];
+        if (!minimumEqIndex.has_value()|| minimum > pivotValue) {
           minimum = pivotValue;
           minimumEqIndex = i;
         }
       }
 
-      if (minimumEqIndex == -1) {
+      if (!minimumEqIndex.has_value()) {
         // Unbounded solution
-        throw std::runtime_error("SimplexSolver: Unbounded solution");
+        throw computationError("SimplexSolver: Unbounded solution");
       }
 
       // Move pivot variable into basis
-      equations[minimumEqIndex].movePivotToBasis(pivot,
-                                                 costFunction.coefs[pivot]);
+      equations[*minimumEqIndex].movePivotToBasis(*pivot,
+                                                 costFunction.coefs[*pivot]);
 
       // Update remaining equations
-      for (int i = 0; i < int(equations.size()); ++i) {
-        if (i != minimumEqIndex) {
-          equations[i].subtractScaledEquation(equations[minimumEqIndex], pivot);
+      for (size_t i = 0; i < equations.size(); ++i) {
+        if (i != *minimumEqIndex) {
+          equations[i].subtractScaledEquation(equations[*minimumEqIndex], *pivot);
         }
       }
 
@@ -458,8 +451,8 @@ private:
 
   /// Computes the total number of variables tracked during the actual
   /// optimization
-  int computeVariableCount() const {
-    int variableCount = int(mVariables.size());
+  size_t computeVariableCount() const {
+    size_t variableCount = mVariables.size();
     for (const auto &c : mConstraints) {
       if (c.type != ConstraintType::GEQUAL) {
         // EQUAL = 1 artificial
@@ -474,15 +467,15 @@ private:
   }
 
   /// Creates equations from the given constraints for the optimization process
-  std::vector<Equation> createEquations(const int variableCount,
-                                        int &artificialCount) const {
+  std::vector<Equation> createEquations(const size_t variableCount,
+                                        size_t &artificialCount) const {
     std::vector<Equation> equations;
-    int newVarIndex = int(mVariables.size());
-    int newArtificalIndex = variableCount - 1;
-    for (int i = 0; i < int(mConstraints.size()); ++i) {
+    size_t newVarIndex = mVariables.size();
+    size_t newArtificalIndex = variableCount - 1;
+    for (size_t i = 0; i < mConstraints.size(); ++i) {
       Equation e;
       e.coefs.resize(variableCount, 0);
-      for (int j = 0; j < int(mConstraints[i].coefs.size()); ++j) {
+      for (size_t j = 0; j < mConstraints[i].coefs.size(); ++j) {
         e.coefs[j] = mConstraints[i].coefs[j];
       }
       e.constant = mConstraints[i].value;
@@ -521,23 +514,23 @@ private:
     costFunction.constant = T(0);
     costFunction.coefs.resize(equations[0].coefs.size(), 0);
     const T mult = operation == Operation::MINIMIZE ? -T(1) : T(1);
-    for (int j = 0; j < int(mVariables.size()); ++j) {
+    for (size_t j = 0; j < mVariables.size(); ++j) {
       costFunction.coefs[j] = mult * mVariables[j].cost;
     }
     return costFunction;
   }
 
   /// Finds the pivot variable to enter the basis
-  /// Returns -1 if no such variable exists (optimal solution found)
-  int findPivot(const std::vector<Equation> &equations,
+  /// Returns std::nullopt if no such variable exists (optimal solution found)
+  std::optional<size_t> findPivot(const std::vector<Equation> &equations,
                 const Equation &costFunction,
-                const int nonArtificialCount) const {
-    int pivot = -1;
+                const size_t nonArtificialCount) const {
+    std::optional<size_t> pivot = std::nullopt;
     // We track values containing artificial variables separately, since they
     // should have higher value then other variables
     T prevValue = 0;
     T prevArtificialValue(0);
-    for (int i = 0; i < nonArtificialCount; ++i) {
+    for (size_t i = 0; i < nonArtificialCount; ++i) {
       // Compute cost function minus current basis contribution
       T value = costFunction.coefs[i];
       T artificialValue(0);
@@ -563,6 +556,7 @@ private:
   Result reportResult(const std::vector<Equation> &equations) const {
     std::vector<T> basisValues(mVariables.size(), 0);
     for (const Equation &eq : equations) {
+      /// Check for infeasible solution due to artificial basis variable having positive value
       if (eq.isBasisArtifical && eq.constant > tolerance) {
         return Result{.variables = {}, .cost = T(0)}; // Infeasible solution
       }
@@ -571,7 +565,7 @@ private:
     r.variables.resize(mVariables.size(), 0);
     r.cost = T(0);
     for (const Equation &eq : equations) {
-      if (eq.basis < int(mVariables.size())) {
+      if (eq.basis < mVariables.size()) {
         r.variables[eq.basis] = eq.constant;
         r.cost += eq.constant * mVariables[eq.basis].cost;
       }
@@ -580,7 +574,7 @@ private:
   }
 
   /// Prints one variable
-  void printVariable(const int i) const {
+  void printVariable(const size_t i) const {
     switch (mVariables[i].type) {
     case VariableType::FLOAT:
       std::cout << "float ";
@@ -600,8 +594,8 @@ private:
       std::cout << " <= 0 ";
       break;
     }
-    if (mVariables[i].originalIndex != -1) {
-      std::cout << " (added to " << char('a' + mVariables[i].originalIndex)
+    if (mVariables[i].originalIndex.has_value()) {
+      std::cout << " (added to " << char('a' + *mVariables[i].originalIndex)
                 << ')';
     }
   }
@@ -609,7 +603,7 @@ private:
   /// Prints the cost function
   void printCostFunction() const {
     std::cout << "Cost function = ";
-    for (int i = 0; i < int(mVariables.size()); ++i) {
+    for (size_t i = 0; i < mVariables.size(); ++i) {
       if (mVariables[i].cost != T(0)) {
         if (mVariables[i].cost > T(0) && i > 0) {
           std::cout << "+";
@@ -621,7 +615,7 @@ private:
 
   /// Prints one constraint
   void printConstraint(const Constraint &c) const {
-    for (int j = 0; j < int(c.coefs.size()); ++j) {
+    for (size_t j = 0; j < c.coefs.size(); ++j) {
       if (c.coefs[j] != T(0)) {
         if (c.coefs[j] > T(0) && j > 0) {
           std::cout << "+";
@@ -652,10 +646,10 @@ private:
 
   /// Finds the variable that violates its type the most (integer variables
   /// having non-integer values)
-  int findTypeViolation(const Result &result) const {
+  std::optional<size_t> findTypeViolation(const Result &result) const {
     T maxDifference = T(0);
-    int index = -1;
-    for (int i = 0; i < int(mVariables.size()); ++i) {
+    std::optional<size_t> index = std::nullopt;
+    for (size_t i = 0; i < mVariables.size(); ++i) {
       if (mVariables[i].type == VariableType::INTEGER) {
         const T difference = integerVariableError(result.variables[i]);
         if (difference > maxDifference) {
@@ -664,7 +658,7 @@ private:
         }
       }
     }
-    return maxDifference < tolerance ? -1 : index;
+    return maxDifference < tolerance ? std::nullopt : index;
   }
 
   /// Checks whether there are any integer variables in the problem
@@ -680,7 +674,7 @@ private:
   /// Adds a lower bound constraint for the given variable to the list of
   /// constraints
   std::vector<Constraint>
-  addLowerBound(const std::vector<Constraint> &constraints, const int varIndex,
+  addLowerBound(const std::vector<Constraint> &constraints, const size_t varIndex,
                 const T boundValue) const {
     return addBound(constraints, varIndex, boundValue, ConstraintType::GEQUAL);
   }
@@ -688,14 +682,14 @@ private:
   /// Adds an upper bound constraint for the given variable to the list of
   /// constraints
   std::vector<Constraint>
-  addUpperBound(const std::vector<Constraint> &constraints, const int varIndex,
+  addUpperBound(const std::vector<Constraint> &constraints, const size_t varIndex,
                 const T boundValue) const {
     return addBound(constraints, varIndex, boundValue, ConstraintType::LEQUAL);
   }
 
   /// Adds a bound constraint for the given variable to the list of constraints
   std::vector<Constraint> addBound(const std::vector<Constraint> &constraints,
-                                   const int varIndex, const T boundValue,
+                                   const size_t varIndex, const T boundValue,
                                    const ConstraintType boundType) const {
     std::vector<Constraint> newConstraints = constraints;
     Constraint c;

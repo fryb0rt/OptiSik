@@ -3,7 +3,7 @@
 #include <cmath>
 #include <stdexcept>
 #include <ostream>
-#include "vector.h"
+#include "data/vector.h"
 
 namespace OptiSik {
 

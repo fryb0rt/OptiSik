@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
-#include "../data/matrix.h"
-#include "../data/vector.h"
+#include "data/matrix.h"
+#include "data/vector.h"
 
 using namespace OptiSik;
 using Mat = Matrix<double>;
