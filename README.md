@@ -1,5 +1,5 @@
 # OptiSik
-Simple library for optimization
+Simple header-only library for optimization and equations solving.
 Contents:
 
 1) Solver for linear programming problems (optimizers/simplexSolver.h)
@@ -10,4 +10,6 @@ be bounded or unbounded.
 Decomposition of matrix in lower and upper triangle. 
 Allows solving of linear equations, matrix inversion and determinant computation.
 
-The plan is to add more features.
+3) GTests for all components - only these require compilation.
+
+The plan is to add more features in the near future.
