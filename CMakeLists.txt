@@ -15,9 +15,7 @@ FetchContent_MakeAvailable(googletest)
 
 enable_testing()
 
-add_executable(OptiSik test.cpp tests/simplexSolver.test.cpp)
-
-add_executable(TestOptiSik tests/vector_gtest.cpp tests/matrix_gtest.cpp)
+add_executable(TestOptiSik tests/vector_gtest.cpp tests/matrix_gtest.cpp tests/simplexSolver_gtest.cpp)
 
 target_link_libraries(
   TestOptiSik
