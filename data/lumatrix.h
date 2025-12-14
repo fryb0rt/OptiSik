@@ -90,5 +90,44 @@ class LUMatrix {
         }
         return x;
     }
+
+    /// Computes the determinant of the original matrix
+    T determinant () const {
+        T det (1);
+        for (size_t i = 0; i < mLU.rows (); ++i) {
+            det *= mLU (i, i);
+        }
+        return mRowExchanges % 2 == 0 ? det : -det;
+    }
+
+    /// Computes the inverse of the original matrix
+    TMatrix invert () const {
+        const size_t n = mLU.rows ();
+        TMatrix inverse (n, n);
+        for (size_t i = 0; i < n; ++i) {
+            std::vector<T> e (n, T (0));
+            e[i]               = T (1);
+            std::vector<T> col = solve (e);
+            for (size_t j = 0; j < n; ++j) {
+                inverse (j, i) = col[j];
+            }
+        }
+        return inverse;
+    }
+
+    /// Returns the LU matrix
+    const TMatrix& getLU () const {
+        return mLU;
+    }
+
+    /// Returns the permutation vector
+    const std::vector<size_t>& getPermutations () const {
+        return mPermutations;
+    }
+
+    /// Returns the number of row exchanges
+    size_t getRowExchanges () const {
+        return mRowExchanges;
+    }
 };
 } // namespace OptiSik

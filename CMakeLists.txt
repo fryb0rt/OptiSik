@@ -15,7 +15,7 @@ FetchContent_MakeAvailable(googletest)
 
 enable_testing()
 
-add_executable(TestOptiSik tests/vector_gtest.cpp tests/matrix_gtest.cpp tests/simplexSolver_gtest.cpp)
+add_executable(TestOptiSik tests/vector_gtest.cpp tests/matrix_gtest.cpp tests/simplexSolver_gtest.cpp tests/lumatrix_gtest.cpp)
 
 # Make project root available so we can include headers without relative paths
 target_include_directories(TestOptiSik PRIVATE ${CMAKE_SOURCE_DIR})
