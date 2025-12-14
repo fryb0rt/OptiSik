@@ -21,6 +21,7 @@ add_executable(TestOptiSik
   tests/simplexSolver_gtest.cpp
   tests/lumatrix_gtest.cpp
   tests/gradientDescent_gtest.cpp
+  tests/autodiff_gtest.cpp
 )
 
 # Make project root available so we can include headers without relative paths
