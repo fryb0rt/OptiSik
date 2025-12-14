@@ -10,6 +10,9 @@ be bounded or unbounded.
 Decomposition of matrix in lower and upper triangle. 
 Allows solving of linear equations, matrix inversion and determinant computation.
 
+3) Simple multi-dimensional gradient descent (optimizers/gradientDescent.h)
+Accepts function and its gradient as functors.
+
 3) GTests for all components - only these require compilation.
 
 The plan is to add more features in the near future.
