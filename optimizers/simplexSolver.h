@@ -80,13 +80,18 @@ public:
                                    .type = VariableType::FLOAT,
                                    .originalIndex = -1}),
         mVariableCount(variableCount) {
-    assert(variableCount > 0);
+    if (variableCount == 0) {
+      throw invalidArgument("SimplexSolver: Must have at least one variable");
+    }
   }
 
   /// Adds a constraint to the solver. The constraint must have the same number
   /// of coefficients as the number of variables
   void addConstraint(const Constraint &constraint) {
-    assert(constraint.coefs.size() == mVariables.size());
+    if (constraint.coefs.size() != mVariables.size()) {
+      throw invalidArgument(
+          "SimplexSolver::addConstraint: Coefficient size mismatch");
+    }
     mConstraints.push_back(constraint);
   }
 
@@ -94,7 +99,9 @@ public:
   void setVariable(const size_t index, const T cost,
                    const VariableBounds bounds = VariableBounds::NON_NEGATIVE,
                    const VariableType type = VariableType::FLOAT) {
-    assert(index >= 0 && index < mVariables.size());
+    if (index >= mVariables.size()) {
+      throw invalidArgument("SimplexSolver::setVariable: Index out of range");
+    }
     mVariables[index].cost = cost;
     mVariables[index].bounds = bounds;
     mVariables[index].type = type;

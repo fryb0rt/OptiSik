@@ -63,3 +63,38 @@ TEST(MatrixTest, TransposeTraceIdentity) {
   Mat id = Mat::identity(3);
   EXPECT_DOUBLE_EQ(id.trace(), 3.0);
 }
+
+TEST(MatrixTest, ConstructFromVectorOfVectors) {
+  std::vector<std::vector<double>> data{{1, 2}, {3, 4}};
+  Mat m(data);
+  EXPECT_EQ(m.rows(), 2u);
+  EXPECT_EQ(m.cols(), 2u);
+  EXPECT_DOUBLE_EQ(m(0,0), 1.0);
+  EXPECT_DOUBLE_EQ(m(1,1), 4.0);
+}
+
+TEST(MatrixTest, ConstructFromVectorOfVectorsOfVectorObjects) {
+  std::vector<Vec> rows;
+  rows.emplace_back(std::vector<double>{1,2});
+  rows.emplace_back(std::vector<double>{3,4});
+  Mat m(rows);
+  Mat expected(std::vector<std::vector<double>>{{1,2},{3,4}});
+  EXPECT_TRUE(m == expected);
+}
+
+TEST(MatrixTest, EqualityDifferentConstructors) {
+  Mat a(2,2);
+  a(0,0)=1; a(0,1)=2; a(1,0)=3; a(1,1)=4;
+  std::vector<Vec> rows;
+  rows.emplace_back(std::vector<double>{1,2});
+  rows.emplace_back(std::vector<double>{3,4});
+  Mat b(rows);
+  EXPECT_EQ(a, b);
+}
+
+TEST(MatrixTest, EpsilonEquals) {
+  Mat a(std::vector<std::vector<double>>{{1.0,2.0},{3.0,4.0}});
+  Mat b(std::vector<std::vector<double>>{{1.001,1.999},{3.0005,4.0}});
+  EXPECT_TRUE(a.epsilonEquals(b, 0.01));
+  EXPECT_FALSE(a.epsilonEquals(b, 0.0001));
+}

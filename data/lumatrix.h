@@ -19,7 +19,9 @@ template <typename T, typename TMatrix = Matrix<T>, typename TTolerance = Tolera
 public:
   /// Constructor that performs LU decomposition with partial pivoting
   LUMatrix(const TMatrix &A) : mLU(A), mPermutations(A.rows()), mRowExchanges(0) {
-    assert(A.rows() == A.cols());
+    if (A.rows() != A.cols()) {
+      throw invalidArgument("LUMatrix: Matrix must be square for LU decomposition");
+    }
     const size_t n = A.rows();
     for (size_t i = 0; i < n; ++i) {
       mPermutations[i] = i;
@@ -57,7 +59,9 @@ public:
     /// Solves the system Ax = b using the LU decomposition
     std::vector<T> solve(const std::vector<T> &b) const {
         const size_t n = mLU.rows();
-        assert(n == b.size());
+        if (n != b.size()) {
+            throw invalidArgument("LUMatrix::solve: Dimension mismatch between matrix and vector");
+        }
         
         std::vector<T> x(n);
         // Apply permutations to b

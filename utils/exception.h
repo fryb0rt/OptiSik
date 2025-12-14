@@ -4,7 +4,7 @@
 #include <string>
 
 namespace OptiSik {
-    
+
 /// Exception class for computation errors
 class computationError : public std::exception {
 private:
@@ -17,5 +17,7 @@ public:
         return message.c_str();
     }
 };
+
+using invalidArgument = std::invalid_argument;
 
 } // namespace OptiSik

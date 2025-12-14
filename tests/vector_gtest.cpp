@@ -27,8 +27,8 @@ TEST(VectorTest, Arithmetic) {
 TEST(VectorTest, MinMaxAndStats) {
   Vec x(std::vector<double>{1,9,3});
   Vec y(std::vector<double>{4,2,8});
-  EXPECT_EQ(x.min(y), Vec(std::vector<double>{1,2,3}));
-  EXPECT_EQ(x.max(y), Vec(std::vector<double>{4,9,8}));
+  EXPECT_EQ(min(x,y), Vec(std::vector<double>{1,2,3}));
+  EXPECT_EQ(max(x,y), Vec(std::vector<double>{4,9,8}));
   EXPECT_DOUBLE_EQ(x.minElement(), 1.0);
   EXPECT_DOUBLE_EQ(x.maxElement(), 9.0);
   EXPECT_EQ(x.minArg(), 0u);
