@@ -118,33 +118,19 @@ TEST (SimplexSolverTest, IntegerMaximization) {
 }
 
 TEST (SimplexSolverTest, LargeIntegerMinimization) {
-    std::string line = "[.#.###.#] (0,2,6,7) (2,3) (1,2,3,5,7) (0,1,3,4,5,6,7) "
-                       "(0,1,2,3,5,7) (0,2,4,5,7) (1,2,6,7) (0,2,3,5) (3,7) "
-                       "(2,3,4) {35,44,107,74,41,44,31,81}";
-    auto s = OptiSik::split (line, ' ');
-    std::vector<std::vector<int>> buttons;
-    for (int i = 1; i < s.size () - 1; ++i) {
-        buttons.push_back (OptiSik::parseList<int> (s[i], ','));
+    SS solver(10);
+
+    solver.addConstraint(SS::Constraint{.coefs{1,0,0,1,1,1,0,1,0,0}, .type = SS::ConstraintType::EQUAL, .value = 35});
+    solver.addConstraint(SS::Constraint{.coefs{0,0,1,1,1,0,1,0,0,0}, .type = SS::ConstraintType::EQUAL, .value = 44});
+    solver.addConstraint(SS::Constraint{.coefs{1,1,1,0,1,1,1,1,0,1}, .type = SS::ConstraintType::EQUAL, .value = 107});
+    solver.addConstraint(SS::Constraint{.coefs{0,1,1,1,1,0,0,1,1,1}, .type = SS::ConstraintType::EQUAL, .value = 74});
+    solver.addConstraint(SS::Constraint{.coefs{0,0,0,1,0,1,0,0,0,1}, .type = SS::ConstraintType::EQUAL, .value = 41});
+    solver.addConstraint(SS::Constraint{.coefs{0,0,1,1,1,1,0,1,0,0}, .type = SS::ConstraintType::EQUAL, .value = 44});
+    solver.addConstraint(SS::Constraint{.coefs{1,0,0,1,0,0,1,0,0,0}, .type = SS::ConstraintType::EQUAL, .value = 31});
+    solver.addConstraint(SS::Constraint{.coefs{1,0,1,1,1,1,1,0,1,0}, .type = SS::ConstraintType::EQUAL, .value = 81});
+
+    for (int i = 0; i < 10; ++i) {
+        solver.setVariable(i, 1.0, SS::VariableBounds::NON_NEGATIVE, SS::VariableType::INTEGER);
     }
-    std::vector<int> values = OptiSik::parseList<int> (s.back (), ',');
-    SS solver (int(buttons.size ()));
-    for (int i = 0; i < values.size (); ++i) {
-        SS::Constraint c;
-        c.coefs.resize (buttons.size (), 0);
-        c.type  = SS::ConstraintType::EQUAL;
-        c.value = double(values[i]);
-        for (int j = 0; j < buttons.size (); ++j) {
-            bool hasOne = false;
-            for (int v : buttons[j]) {
-                hasOne |= v == i;
-            }
-            c.coefs[j] = double(int(hasOne));
-        }
-        solver.addConstraint (c);
-    }
-    for (int i = 0; i < buttons.size (); ++i) {
-        solver.setVariable (
-        i, 1.0f, SS::VariableBounds::NON_NEGATIVE, SS::VariableType::INTEGER);
-    }
-    testCommon (solver, SS::Operation::MINIMIZE, 114);
+    testCommon(solver, SS::Operation::MINIMIZE, 114);
 }
