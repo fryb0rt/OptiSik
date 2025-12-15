@@ -8,14 +8,35 @@ template <typename T> class Expression {
 
     public:
     using TValueType = T;
-    Expression (const T& value) : mValue (value), mGrad (T (0)) {
+    Expression() : mValue (T(0)), mGrad (T(0)) {}
+
+    template<typename U>
+    Expression (U&& value) {
+        *this = std::forward<U>(value);
     }
-    Expression (const T& value, const T& grad) : mValue (value), mGrad (grad) {
+    
+    template<typename U>
+    Expression (U&& value, U&& grad) : mValue (std::forward<U>(value)), mGrad (std::forward<U>(grad)) {
     }
-    Expression (Expression&&)      = default;
-    Expression (const Expression&) = default;
+
+    template<typename U>
+    Expression& operator=(U&& value) {
+        if constexpr (std::is_same_v<std::decay_t<U>, Expression<T>>) {
+            mValue = value.value ();
+            mGrad = value.gradient ();
+        } else {
+            mValue = std::forward<U>(value);
+            mGrad  = T(0);
+        }
+        return *this;
+    }
+
     operator T () const {
         return mValue;
+    }
+    template<typename U>
+    operator U () const {
+        return static_cast<U> (mValue);
     }
     Expression<T> evaluate () const {
         return *this;
