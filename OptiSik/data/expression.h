@@ -47,6 +47,9 @@ template <typename T> class Expression {
     T value () const {
         return mValue;
     }
+    T& value () {
+        return mValue;
+    }
     void setGradient (const T& grad) {
         mGrad = grad;
     }
@@ -67,7 +70,7 @@ public:
 };
 
 template <typename T> constexpr auto expressionValue (T&& expression) {
-    if constexpr (std::is_arithmetic_v<T>)
+    if constexpr (std::is_arithmetic_v<std::decay_t<T>>)
         return expression;
     else
         return expressionValue (expression.value ());
@@ -75,7 +78,7 @@ template <typename T> constexpr auto expressionValue (T&& expression) {
 
 template <typename T, typename TInput>
 Expression<T> evaluate (const TInput& input) {
-    if constexpr (std::is_arithmetic_v<TInput>)
+    if constexpr (std::is_arithmetic_v<std::decay_t<TInput>>)
         return Expression<T> (input);
     else
         return input.evaluate ();

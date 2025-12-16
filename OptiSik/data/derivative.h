@@ -4,26 +4,65 @@
 namespace OptiSik {
 
 namespace {
-template <typename T> void setGradient (Expression<T>& expr, const T& grad) {
-    expr.setGradient (grad);
+
+template <size_t TGradientIndex, typename TExpression>
+void setGradient (TExpression& expr, typename ExpressionInfo<TExpression>::Type gradient) {
+    if constexpr (TGradientIndex == 0) {
+        expr.value() = typename ExpressionInfo<TExpression>::Type(gradient);
+    } else if constexpr (TGradientIndex == 1) {
+        expr.setGradient (typename ExpressionInfo<TExpression>::Type(gradient));
+    } else {
+        setGradient<TGradientIndex - 1> (expr.value (), gradient);
+    }
 }
+
+template <size_t TOrder, typename... TArgs> class WithRespectToInternal {};
+
+template <size_t TGradientIndex, typename TExpression, typename... TArgs>
+class WithRespectToInternal<TGradientIndex, TExpression, TArgs...> {
+    WithRespectToInternal<TGradientIndex + 1, TArgs...> mNext;
+
+    TExpression& mExpr;
+    public:
+    WithRespectToInternal (TExpression& e, TArgs&... args)
+    : mExpr (e), mNext (args...) {
+        setGradient<TGradientIndex> (mExpr, typename ExpressionInfo<TExpression>::Type (1));
+    }
+    ~WithRespectToInternal () {
+        setGradient<TGradientIndex> (mExpr, typename ExpressionInfo<TExpression>::Type (0));
+    }
+
+    private:
+};
+
 } // namespace
 
-template <typename T, typename TFunctor, typename... TArgs>
-T derivative (const TFunctor& functor, Expression<T>& wrt, TArgs&&... args) {
-    setGradient (wrt, T (1));
-    return functor (std::forward<TArgs> (args)...).gradient ();
+template <typename... TArgs> class WithRespectTo {
+    private:
+    WithRespectToInternal<1, TArgs...> mImpl;
+
+    public:
+    WithRespectTo (TArgs&... args) : mImpl (args...) {
+    }
+};
+
+template <typename TFunctor, typename... TWithRespectToArgs, typename... TArgs>
+auto computeDerivative (const TFunctor& functor, const WithRespectTo<TWithRespectToArgs...>& wrt, TArgs&&... args) {
+    return functor (std::forward<TArgs> (args)...);
 }
 
-template <size_t TOrder = 1, typename T>
-auto derivative (const Expression<T>& expression) {
-    static_assert(TOrder <=  ExpressionInfo<Expression<T>>::order, "Requested derivative order exceeds expression order");
-    if constexpr (TOrder == 0)
+template <size_t TOrder = 1, typename TExpression>
+auto getDerivative (const TExpression& expression) {
+    static_assert (TOrder <= ExpressionInfo<TExpression>::order,
+    "Requested derivative order exceeds expression order");
+    if constexpr (TOrder == 0)  
         return expressionValue (expression.value ());
     else if constexpr (TOrder == 1)
-        return expressionValue(expression.gradient ());
+        return expressionValue (expression.gradient ());
     else
-        return derivative<TOrder - 1> (expression.gradient ());
+        return getDerivative<TOrder - 1> (expression.gradient ());
 }
+
+
 
 } // namespace OptiSik
