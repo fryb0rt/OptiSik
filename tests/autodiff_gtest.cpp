@@ -24,12 +24,27 @@ TEST(AutoDiff, MultDerivative) {
 
 TEST(AutoDiff, HigherOrderDerivative) {
   using Exp2 = Expression<Expression<double>>;
-  Exp2 a(3.0);
+  Exp2 a(Expression<double>(3.0, 1.0), Expression<double>(1.0, 0.0));
   const auto func = [](Exp2 x) {
-      return 4.0 * x * x;
+      return x * x * x + x * x + x;
   };
-  a.setGradient(Expression<double>(1.0, 1.0));
   auto res = func(a);
-  EXPECT_DOUBLE_EQ(res.gradient().value(), 24.0);
-  EXPECT_DOUBLE_EQ(res.gradient().gradient(), 8.0);
+  EXPECT_DOUBLE_EQ(derivative<0>(res), 39.0);
+  EXPECT_DOUBLE_EQ(derivative<1>(res), 34.0);
+  EXPECT_DOUBLE_EQ(derivative<2>(res), 20.0);
+}
+
+TEST(AutoDiff, HigherOrderDerivative2) {
+  using Exp3 = Expression<Expression<Expression<double>>>;
+  Exp3 a(Expression<Expression<double>>(Expression<double>(3.0, 1.0), Expression<double>(1.0, 0.0)), Expression<Expression<double>>(Expression<double>(1.0, 0.0), Expression<double>(0.0, 0.0)));
+  const auto func = [](Exp3 x) {
+      return x * x * x + x * x + x;
+  };
+  auto res = func(a);
+  EXPECT_DOUBLE_EQ(a, 3.0);
+  EXPECT_DOUBLE_EQ(res, 39.0);
+  EXPECT_DOUBLE_EQ(derivative<0>(res), 39.0);
+  EXPECT_DOUBLE_EQ(derivative<1>(res), 34.0);
+  EXPECT_DOUBLE_EQ(derivative<2>(res), 20.0);
+  EXPECT_DOUBLE_EQ(derivative<3>(res), 6.0);
 }
