@@ -4,13 +4,23 @@
 
 using namespace OptiSik;
 
-TEST(AutoDiff, PlusDerivative) {
+TEST(AutoDiff, PlusMinusDerivative) {
   Expression<double> a = 3.0;
   const auto func = [](Expression<double> x) {
       return 3.0 + (x + 4.0) - 5 + x + x - x;
   };
   const double deriv = getDerivative<1>(computeDerivative(func, WithRespectTo(a), a));
   EXPECT_DOUBLE_EQ(deriv, 2.0);
+}
+
+
+TEST(AutoDiff, UnaryMinusDerivative) {
+  Expression<double> a = 3.0;
+  const auto func = [](Expression<double> x) {
+      return -x;
+  };
+  const double deriv = getDerivative<1>(computeDerivative(func, WithRespectTo(a), a));
+  EXPECT_DOUBLE_EQ(deriv, -1.0);
 }
 
 TEST(AutoDiff, MultDerivative) {
@@ -20,6 +30,15 @@ TEST(AutoDiff, MultDerivative) {
   };
   const double deriv = getDerivative<1>(computeDerivative(func, WithRespectTo(a), a));
   EXPECT_DOUBLE_EQ(deriv, 24.0);
+}
+
+TEST(AutoDiff, DivDerivative) {
+  Expression<double> a = 3.0;
+  const auto func = [](Expression<double> x) {
+      return (x + x) / (x * x);
+  };
+  const double deriv = getDerivative<1>(computeDerivative(func, WithRespectTo(a), a));
+  EXPECT_DOUBLE_EQ(deriv, -2.0 / 9.0);
 }
 
 TEST(AutoDiff, HigherOrderDerivative) {
@@ -58,4 +77,19 @@ TEST(AutoDiff, HigherOrderDerivative3) {
   EXPECT_DOUBLE_EQ(getDerivative<0>(res), 44.0);
   EXPECT_DOUBLE_EQ(getDerivative<1>(res), 11.0);
   EXPECT_DOUBLE_EQ(getDerivative<2>(res), 1.0);
+}
+
+TEST(AutoDiff, AssignDerivative) {
+  Expression2<double> a = 3.0;
+  const auto func = [](Expression2<double> x) {
+      auto y = x;
+      y -= x * 0.5;
+      y *= 3.0;
+      y *= y;
+      y /= 2.0;
+      return y;
+  };
+  auto res = computeDerivative(func, WithRespectTo(a, a), a);
+  EXPECT_DOUBLE_EQ(getDerivative<1>(res), 6.75);
+  EXPECT_DOUBLE_EQ(getDerivative<2>(res), 2.25);
 }

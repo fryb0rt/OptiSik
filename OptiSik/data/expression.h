@@ -52,6 +52,25 @@ template <typename T> class Expression {
     void setGradient (const T& grad) {
         mGrad = grad;
     }
+    Expression<T> operator- () const {
+        return Expression<T> (-mValue, -mGrad);
+    }
+    template <typename U> Expression<T> operator+= (const U& other) {
+        *this = *this + other;
+        return *this;
+    }
+    template <typename U> Expression<T> operator-= (const U& other) {
+        *this = *this - other;
+        return *this;
+    }
+    template <typename U> Expression<T> operator*= (const U& other) {
+        *this = *this * other;
+        return *this;
+    }
+    template <typename U> Expression<T> operator/= (const U& other) {
+        *this = *this / other;
+        return *this;
+    }
 };
 
 namespace {
@@ -131,6 +150,15 @@ Expression<T> operator* (const TLeft& left, const TRight& right) {
     Expression<T> rightExpr = OptiSik::evaluate<T, TRight> (right);
     return Expression<T> (leftExpr.value () * rightExpr.value (),
     leftExpr.gradient () * rightExpr.value () + leftExpr.value () * rightExpr.gradient ());
+}
+
+template <typename TLeft, typename TRight, typename T = GetType<TLeft, TRight>::TValueType>
+Expression<T> operator/ (const TLeft& left, const TRight& right) {
+    Expression<T> leftExpr  = OptiSik::evaluate<T, TLeft> (left);
+    Expression<T> rightExpr = OptiSik::evaluate<T, TRight> (right);
+    return Expression<T> (leftExpr.value () / rightExpr.value (),
+    (leftExpr.gradient () * rightExpr.value () - leftExpr.value () * rightExpr.gradient ()) /
+    (rightExpr.value () * rightExpr.value ()));
 }
 
 } // namespace OptiSik
