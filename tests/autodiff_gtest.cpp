@@ -48,3 +48,16 @@ TEST(AutoDiff, HigherOrderDerivative2) {
   EXPECT_DOUBLE_EQ(derivative<2>(res), 20.0);
   EXPECT_DOUBLE_EQ(derivative<3>(res), 6.0);
 }
+
+TEST(AutoDiff, HigherOrderDerivative3) {
+  using Exp2 = Expression<Expression<double>>;
+  Exp2 a(Expression<double>(3.0, 0.0), Expression<double>(1.0, 0.0));
+  Exp2 b(Expression<double>(4.0, 1.0), Expression<double>(0.0, 0.0));
+  const auto func = [](Exp2 a, Exp2 b) {
+      return a * a + a * b + b * b + a + b;
+  };
+  auto res = func(a, b);
+  EXPECT_DOUBLE_EQ(derivative<0>(res), 44.0);
+  EXPECT_DOUBLE_EQ(derivative<1>(res), 11.0);
+  EXPECT_DOUBLE_EQ(derivative<2>(res), 1.0);
+}

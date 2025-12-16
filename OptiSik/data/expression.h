@@ -52,6 +52,20 @@ template <typename T> class Expression {
     }
 };
 
+template<typename T> 
+class ExpressionInfo{
+public:
+    static constexpr size_t order = 0;
+    using Type = T;
+};
+
+template<typename T> 
+class ExpressionInfo<Expression<T>>{
+public:
+    static constexpr size_t order = ExpressionInfo<T>::order + 1;
+    using Type = typename ExpressionInfo<T>::Type;
+};
+
 template <typename T> constexpr auto expressionValue (T&& expression) {
     if constexpr (std::is_arithmetic_v<T>)
         return expression;

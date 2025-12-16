@@ -15,14 +15,15 @@ T derivative (const TFunctor& functor, Expression<T>& wrt, TArgs&&... args) {
     return functor (std::forward<TArgs> (args)...).gradient ();
 }
 
-template <size_t order = 1, typename T>
+template <size_t TOrder = 1, typename T>
 auto derivative (const Expression<T>& expression) {
-    if constexpr (order == 0)
+    static_assert(TOrder <=  ExpressionInfo<Expression<T>>::order, "Requested derivative order exceeds expression order");
+    if constexpr (TOrder == 0)
         return expressionValue (expression.value ());
-    else if constexpr (order == 1)
+    else if constexpr (TOrder == 1)
         return expressionValue(expression.gradient ());
     else
-        return derivative<order - 1> (expression.gradient ());
+        return derivative<TOrder - 1> (expression.gradient ());
 }
 
 } // namespace OptiSik
