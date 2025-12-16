@@ -15,8 +15,12 @@ template <typename T> class Expression {
         *this = std::forward<U> (value);
     }
 
-    Expression (T value, T grad)
+    Expression (const T& value, const T& grad)
     : mValue (value), mGrad (grad) {
+    }
+
+    Expression (T&& value, T&& grad)
+    : mValue (std::move(value)), mGrad (std::move(grad)) {
     }
 
     template <typename U> Expression& operator= (U&& value) {
@@ -33,7 +37,7 @@ template <typename T> class Expression {
     template<typename U> operator U() const {
         return static_cast<U> (mValue);
     }
-    
+
     Expression<T> evaluate () const {
         return *this;
     }
