@@ -15,12 +15,11 @@ template <typename T> class Expression {
         *this = std::forward<U> (value);
     }
 
-    Expression (const T& value, const T& grad)
-    : mValue (value), mGrad (grad) {
+    Expression (const T& value, const T& grad) : mValue (value), mGrad (grad) {
     }
 
     Expression (T&& value, T&& grad)
-    : mValue (std::move(value)), mGrad (std::move(grad)) {
+    : mValue (std::move (value)), mGrad (std::move (grad)) {
     }
 
     template <typename U> Expression& operator= (U&& value) {
@@ -34,7 +33,7 @@ template <typename T> class Expression {
         return *this;
     }
 
-    template<typename U> operator U() const {
+    template <typename U> operator U () const {
         return static_cast<U> (mValue);
     }
 
@@ -55,18 +54,33 @@ template <typename T> class Expression {
     }
 };
 
-template<typename T> 
-class ExpressionInfo{
-public:
-    static constexpr size_t order = 0;
-    using Type = T;
+namespace {
+template <size_t TOrder, typename T> class ExpressionHigherOrderAux {
+    public:
+    using Type = Expression<typename ExpressionHigherOrderAux<TOrder - 1, T>::Type>;
 };
 
-template<typename T> 
-class ExpressionInfo<Expression<T>>{
-public:
+template <typename T> class ExpressionHigherOrderAux<0, T> {
+    public:
+    using Type = T;
+};
+} // namespace
+template <size_t TOrder, typename T>
+using ExpressionHigherOrder = typename ExpressionHigherOrderAux<TOrder, T>::Type;
+
+template <typename T> using Expression2 = ExpressionHigherOrder<2, T>;
+template <typename T> using Expression3 = ExpressionHigherOrder<3, T>;
+
+template <typename T> class ExpressionInfo {
+    public:
+    static constexpr size_t order = 0;
+    using Type                    = T;
+};
+
+template <typename T> class ExpressionInfo<Expression<T>> {
+    public:
     static constexpr size_t order = ExpressionInfo<T>::order + 1;
-    using Type = typename ExpressionInfo<T>::Type;
+    using Type                    = typename ExpressionInfo<T>::Type;
 };
 
 template <typename T> constexpr auto expressionValue (T&& expression) {

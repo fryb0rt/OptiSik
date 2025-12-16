@@ -23,9 +23,8 @@ TEST(AutoDiff, MultDerivative) {
 }
 
 TEST(AutoDiff, HigherOrderDerivative) {
-  using Exp2 = Expression<Expression<double>>;
-  Exp2 a = 3.0;
-  const auto func = [](Exp2 x) {
+  Expression2<double> a = 3.0;
+  const auto func = [](Expression2<double> x) {
       return x * x * x + x * x + x;
   };
   auto res = computeDerivative(func, WithRespectTo(a, a), a);
@@ -35,9 +34,8 @@ TEST(AutoDiff, HigherOrderDerivative) {
 }
 
 TEST(AutoDiff, HigherOrderDerivative2) {
-  using Exp3 = Expression<Expression<Expression<double>>>;
-  Exp3 a = 3.0;
-  const auto func = [](Exp3 x) {
+  Expression3<double> a = 3.0;
+  const auto func = [](Expression3<double> x) {
       return x * x * x + x * x + x;
   };
   auto res = computeDerivative(func, WithRespectTo(a, a, a), a);
@@ -50,7 +48,7 @@ TEST(AutoDiff, HigherOrderDerivative2) {
 }
 
 TEST(AutoDiff, HigherOrderDerivative3) {
-  using Exp2 = Expression<Expression<double>>;
+  using Exp2 = Expression2<double>;
   Exp2 a = 3.0;
   Exp2 b = 4.0;
   const auto func = [](Exp2 a, Exp2 b) {
