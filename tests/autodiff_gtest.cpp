@@ -250,3 +250,24 @@ TEST(AutoDiff, pow) {
   };
   EXPECT_DOUBLE_EQ(getDerivative<1>(computeDerivative(powFuncVE, WithRespectTo(y), 4.0, y)), std::pow(4.0, 3.0) * log(4.0));
 }
+
+TEST(AutoDiff, atan2) {
+  Expression<double> x = 4.0;
+  Expression<double> y = 3.0;
+  const auto atan2FuncEE = [](Expression<double> x, Expression<double> y) {
+      return atan2(x, y);
+  };
+  EXPECT_DOUBLE_EQ(atan2FuncEE(x, y), std::atan2(4.0, 3.0));
+  EXPECT_DOUBLE_EQ(getDerivative<1>(computeDerivative(atan2FuncEE, WithRespectTo(x), x, y)), 0.12);
+  EXPECT_DOUBLE_EQ(getDerivative<1>(computeDerivative(atan2FuncEE, WithRespectTo(y), x, y)), -0.16);
+
+  const auto atan2FuncEV = [](Expression<double> x, const double y) {
+      return atan2(x, y);
+  };
+  EXPECT_DOUBLE_EQ(getDerivative<1>(computeDerivative(atan2FuncEV, WithRespectTo(x), x, 3.0)), 0.12);
+  
+  const auto atan2FuncVE = [](const double x, Expression<double> y) {
+      return atan2(x, y);
+  };
+  EXPECT_DOUBLE_EQ(getDerivative<1>(computeDerivative(atan2FuncVE, WithRespectTo(y), 4.0, y)), -0.16);
+}
