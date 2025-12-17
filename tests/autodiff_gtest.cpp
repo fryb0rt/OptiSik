@@ -309,17 +309,31 @@ TEST(AutoDiff, HigherOrderPow2) {
   EXPECT_DOUBLE_EQ(getDerivative<3>(res), 81.0 * pow<3>(log(3)));
 }
 
-// TEST(AutoDiff, HigherOrderFunctions) {
-//   using Exp3 = Expression3<double>;
-//   Exp3 a = 3.0;
-//   Exp3 b = 4.0;
-//   Exp3 c = 5.0;
-//   const auto func = [](Exp3 a, Exp3 b, Exp3 c) {
-//       return abs(sin(a + exp(b)) * log(c) + pow(a,b) * atan2(b, c) / sinh(a));
-//   };
-//   auto res = computeDerivative(func, WithRespectTo(a, b, c), a, b, c);
-//   EXPECT_DOUBLE_EQ(getDerivative<0>(res), 6.8512987317001866);
-//   EXPECT_DOUBLE_EQ(getDerivative<1>(res), 11.0);
-//   EXPECT_DOUBLE_EQ(getDerivative<2>(res), 1.0);
-//   EXPECT_DOUBLE_EQ(getDerivative<3>(res), 1.0);
-// }
+TEST(AutoDiff, HigherOrderPow3) {
+  using Exp3 = Expression3<double>;
+  Exp3 a = 3.0;
+  Exp3 b = 4.0;
+  const auto func = [](Exp3 a, Exp3 b) {
+      return pow(a,b);
+  };
+  auto res = computeDerivative(func, WithRespectTo(a, b, a), a, b);
+  EXPECT_DOUBLE_EQ(getDerivative<0>(res), 81.0);
+  EXPECT_DOUBLE_EQ(getDerivative<1>(res), 108);
+  EXPECT_DOUBLE_EQ(getDerivative<2>(res), 108 * log(3) + 27.0);
+  EXPECT_DOUBLE_EQ(getDerivative<3>(res), 108 * log(3) + 63.0);
+}
+
+TEST(AutoDiff, HigherOrderFunctions) {
+  using Exp3 = Expression3<double>;
+  Exp3 a = 3.0;
+  Exp3 b = 4.0;
+  Exp3 c = 5.0;
+  const auto func = [](Exp3 a, Exp3 b, Exp3 c) {
+      return abs(sin(a + exp(b)) * log(c) + pow(a,b) * atan2(b, c) / sinh(a));
+  };
+  auto res = computeDerivative(func, WithRespectTo(a, b, c), a, b, c);
+  EXPECT_DOUBLE_EQ(getDerivative<0>(res), 6.8512987317001866);
+  EXPECT_DOUBLE_EQ(getDerivative<1>(res), 2.5929686716269345);
+  EXPECT_DOUBLE_EQ(getDerivative<2>(res), -72.089431210219814); // Check
+  EXPECT_DOUBLE_EQ(getDerivative<3>(res), -10.030853028022817); // Check
+}
