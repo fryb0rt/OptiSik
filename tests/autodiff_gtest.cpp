@@ -13,7 +13,6 @@ TEST(AutoDiff, PlusMinusDerivative) {
   EXPECT_DOUBLE_EQ(deriv, 2.0);
 }
 
-
 TEST(AutoDiff, UnaryMinusDerivative) {
   Expression<double> a = 3.0;
   const auto func = [](Expression<double> x) {
@@ -92,4 +91,46 @@ TEST(AutoDiff, AssignDerivative) {
   auto res = computeDerivative(func, WithRespectTo(a, a), a);
   EXPECT_DOUBLE_EQ(getDerivative<1>(res), 6.75);
   EXPECT_DOUBLE_EQ(getDerivative<2>(res), 2.25);
+}
+
+TEST(AutoDiff, AbsDerivative) {
+  Expression<double> x = -10.0;
+  const auto absFunc = [](Expression<double> x) {
+      return abs(x);
+  };
+  EXPECT_DOUBLE_EQ(getDerivative<1>(computeDerivative(absFunc, WithRespectTo(x), x)), -1.0);
+  x = 10.0;
+  EXPECT_DOUBLE_EQ(getDerivative<1>(computeDerivative(absFunc, WithRespectTo(x), x)), 1.0);
+}
+
+TEST(AutoDiff, ACosDerivative) {
+  Expression<double> x = 0.5;
+  const auto acosFunc = [](Expression<double> x) {
+      return acos(x);
+  };
+  EXPECT_DOUBLE_EQ(getDerivative<1>(computeDerivative(acosFunc, WithRespectTo(x), x)), -1.1547005383792517);
+}
+
+TEST(AutoDiff, ASinDerivative) {
+  Expression<double> x = 0.5;
+  const auto asinFunc = [](Expression<double> x) {
+      return asin(x);
+  };
+  EXPECT_DOUBLE_EQ(getDerivative<1>(computeDerivative(asinFunc, WithRespectTo(x), x)), 1.1547005383792517);
+}
+
+TEST(AutoDiff, ATanDerivative) {
+  Expression<double> x = 0.5;
+  const auto atanFunc = [](Expression<double> x) {
+      return atan(x);
+  };
+  EXPECT_DOUBLE_EQ(getDerivative<1>(computeDerivative(atanFunc, WithRespectTo(x), x)), 0.8);
+}
+
+TEST(AutoDiff, SinDerivative) {
+  Expression<double> x = M_PI / 4.0;
+  const auto sinFunc = [](Expression<double> x) {
+      return sin(x);
+  };
+  EXPECT_DOUBLE_EQ(getDerivative<1>(computeDerivative(sinFunc, WithRespectTo(x), x)), 1 / sqrt(2));
 }

@@ -1,7 +1,12 @@
 #pragma once
-
+#include <cmath>
 namespace OptiSik {
 
+//=============================================================================
+//
+// Class representing an expression with automatic differentiation support
+//
+//=============================================================================
 template <typename T> class Expression {
     T mValue;
     T mGrad;
@@ -37,9 +42,6 @@ template <typename T> class Expression {
         return static_cast<U> (mValue);
     }
 
-    Expression<T> evaluate () const {
-        return *this;
-    }
     T gradient () const {
         return mGrad;
     }
@@ -55,23 +57,32 @@ template <typename T> class Expression {
     Expression<T> operator- () const {
         return Expression<T> (-mValue, -mGrad);
     }
-    template <typename U> Expression<T> operator+= (const U& other) {
+    Expression<T>& operator+ () const {
+        return *this;
+    }
+    template <typename U> Expression<T>& operator+= (U&& other) {
         *this = *this + other;
         return *this;
     }
-    template <typename U> Expression<T> operator-= (const U& other) {
+    template <typename U> Expression<T>& operator-= (U&& other) {
         *this = *this - other;
         return *this;
     }
-    template <typename U> Expression<T> operator*= (const U& other) {
+    template <typename U> Expression<T>& operator*= (U&& other) {
         *this = *this * other;
         return *this;
     }
-    template <typename U> Expression<T> operator/= (const U& other) {
+    template <typename U> Expression<T> operator/= (U&& other) {
         *this = *this / other;
         return *this;
     }
 };
+
+//=============================================================================
+//
+// Support for higher order derivatives
+//
+//=============================================================================
 
 namespace {
 template <size_t TOrder, typename T> class ExpressionHigherOrderAux {
@@ -89,6 +100,12 @@ using ExpressionHigherOrder = typename ExpressionHigherOrderAux<TOrder, T>::Type
 
 template <typename T> using Expression2 = ExpressionHigherOrder<2, T>;
 template <typename T> using Expression3 = ExpressionHigherOrder<3, T>;
+
+//=============================================================================
+//
+// Type traits
+//
+//=============================================================================
 
 template <typename T> class ExpressionInfo {
     public:
@@ -109,56 +126,238 @@ template <typename T> constexpr auto expressionValue (T&& expression) {
         return expressionValue (expression.value ());
 }
 
-template <typename T, typename TInput>
-Expression<T> evaluate (const TInput& input) {
-    if constexpr (std::is_arithmetic_v<std::decay_t<TInput>>)
-        return Expression<T> (input);
-    else
-        return input.evaluate ();
-}
-
-template <typename TLeft, typename TRight> class GetType {
-    public:
-    using TValueType = typename TRight::TValueType;
+namespace {
+template <typename T> struct IsExpressionAux {
+    static constexpr bool value = false;
 };
 
-template <template <typename> typename Expression, typename TRight, typename T>
-class GetType<Expression<T>, TRight> {
-    public:
-    using TValueType = T;
+template <typename T> struct IsExpressionAux<Expression<T>> {
+    static constexpr bool value = true;
 };
 
-template <typename TLeft, typename TRight, typename T = GetType<TLeft, TRight>::TValueType>
-Expression<T> operator+ (const TLeft& left, const TRight& right) {
-    Expression<T> leftExpr  = OptiSik::evaluate<T, TLeft> (left);
-    Expression<T> rightExpr = OptiSik::evaluate<T, TRight> (right);
-    return Expression<T> (leftExpr.value () + rightExpr.value (),
-    leftExpr.gradient () + rightExpr.gradient ());
+template <typename T> struct IsExpression {
+    static constexpr bool value = IsExpressionAux<std::decay_t<T>>::value;
+};
+
+template <typename TLeft, typename TRight> struct CommonExpressionAux2 {};
+
+template <typename T, typename TRight>
+struct CommonExpressionAux2<Expression<T>, TRight> {
+    using Type = Expression<T>;
+};
+
+template <typename TLeft, typename T>
+struct CommonExpressionAux2<TLeft, Expression<T>> {
+    using Type = Expression<T>;
+};
+
+template <typename T>
+struct CommonExpressionAux2<Expression<T>, Expression<T>> {
+    using Type = Expression<T>;
+};
+
+template <typename TLeft, typename TRight, typename = std::enable_if_t<IsExpression<TLeft>::value || IsExpression<TRight>::value>>
+struct CommonExpression2 {
+    using Type = CommonExpressionAux2<std::decay_t<TLeft>, std::decay_t<TRight>>::Type;
+};
+
+template <typename T, typename = std::enable_if_t<IsExpression<T>::value>>
+struct CommonExpression {
+    using Type = std::decay_t<T>;
+};
+
+} // namespace
+
+//=============================================================================
+//
+// Constants
+//
+//=============================================================================
+
+template <typename T> constexpr auto One () {
+    return static_cast<ExpressionInfo<T>::Type> (1);
 }
 
-template <typename TLeft, typename TRight, typename T = GetType<TLeft, TRight>::TValueType>
-Expression<T> operator- (const TLeft& left, const TRight& right) {
-    Expression<T> leftExpr  = OptiSik::evaluate<T, TLeft> (left);
-    Expression<T> rightExpr = OptiSik::evaluate<T, TRight> (right);
-    return Expression<T> (leftExpr.value () - rightExpr.value (),
-    leftExpr.gradient () - rightExpr.gradient ());
+template <typename T> constexpr auto Zero () {
+    return static_cast<ExpressionInfo<T>::Type> (0);
 }
 
-template <typename TLeft, typename TRight, typename T = GetType<TLeft, TRight>::TValueType>
-Expression<T> operator* (const TLeft& left, const TRight& right) {
-    Expression<T> leftExpr  = OptiSik::evaluate<T, TLeft> (left);
-    Expression<T> rightExpr = OptiSik::evaluate<T, TRight> (right);
-    return Expression<T> (leftExpr.value () * rightExpr.value (),
-    leftExpr.gradient () * rightExpr.value () + leftExpr.value () * rightExpr.gradient ());
+//=============================================================================
+//
+// Operator overloads
+//
+//=============================================================================
+
+template <typename TLeft, typename TRight, typename TExpression = typename CommonExpression2<TLeft, TRight>::Type>
+TExpression operator+ (TLeft&& left, TRight&& right) {
+    if constexpr (!IsExpression<TLeft>::value) {
+        return TExpression (left + right.value (), right.gradient ());
+    } else if constexpr (!IsExpression<TRight>::value) {
+        return TExpression (right + left.value (), left.gradient ());
+    } else {
+        return TExpression (left.value () + right.value (),
+                            left.gradient () + right.gradient ());
+    }
 }
 
-template <typename TLeft, typename TRight, typename T = GetType<TLeft, TRight>::TValueType>
-Expression<T> operator/ (const TLeft& left, const TRight& right) {
-    Expression<T> leftExpr  = OptiSik::evaluate<T, TLeft> (left);
-    Expression<T> rightExpr = OptiSik::evaluate<T, TRight> (right);
-    return Expression<T> (leftExpr.value () / rightExpr.value (),
-    (leftExpr.gradient () * rightExpr.value () - leftExpr.value () * rightExpr.gradient ()) /
-    (rightExpr.value () * rightExpr.value ()));
+template <typename TLeft, typename TRight, typename TExpression = typename CommonExpression2<TLeft, TRight>::Type>
+TExpression operator- (TLeft&& left, TRight&& right) {
+    if constexpr (!IsExpression<TLeft>::value) {
+        return TExpression (left - right.value (), right.gradient ());
+    } else if constexpr (!IsExpression<TRight>::value) {
+        return TExpression (right - left.value (), left.gradient ());
+    } else {
+        return TExpression (left.value () - right.value (),
+                            left.gradient () - right.gradient ());
+    }
+}
+
+template <typename TLeft, typename TRight, typename TExpression = typename CommonExpression2<TLeft, TRight>::Type>
+TExpression operator* (TLeft&& left, TRight&& right) {
+    if constexpr (!IsExpression<TLeft>::value) {
+        return TExpression (left * right.value (), left * right.gradient ());
+    } else if constexpr (!IsExpression<TRight>::value) {
+        return TExpression (left.value () * right, left.gradient () * right);
+    } else {
+        return TExpression (left.value () * right.value (),
+                            left.gradient () * right.value () +
+                            left.value () * right.gradient ());
+    }
+}
+
+template <typename TLeft, typename TRight, typename TExpression = typename CommonExpression2<TLeft, TRight>::Type>
+TExpression operator/ (TLeft&& left, TRight&& right) {
+    if constexpr (!IsExpression<TLeft>::value) {
+        return TExpression (left / right.value (),
+                            -(left.value () * right.gradient ()) /
+                            (right.value () * right.value ()));
+    } else if constexpr (!IsExpression<TRight>::value) {
+        return TExpression (left.value () / right, left.gradient () / right);
+    } else {
+        return TExpression (left.value () / right.value (),
+                            (left.gradient () * right.value () -
+                             left.value () * right.gradient ()) /
+                            (right.value () * right.value ()));
+    }
+}
+
+//=============================================================================
+//
+// Function overloads
+//
+//=============================================================================
+
+using std::abs;
+using std::acos;
+using std::asin;
+using std::atan;
+using std::cos;
+using std::cosh;
+using std::erf;
+using std::exp;
+using std::log;
+using std::log10;
+using std::sin;
+using std::sinh;
+using std::sqrt;
+using std::tan;
+using std::tanh;
+
+template <typename T, typename TExpression = CommonExpression<T>::Type>
+TExpression abs (T&& expr) {
+    auto mult = expr.value () >= Zero<TExpression> () ? One<TExpression> () :
+                                                        -One<TExpression> ();
+    return TExpression (abs (expr.value ()), expr.gradient () * mult);
+}
+
+template <typename T, typename TExpression = CommonExpression<T>::Type>
+TExpression acos (T&& expr) {
+    auto mult = -One<TExpression> () /
+    sqrt(One<TExpression> () - expr.value () * expr.value ());
+    return TExpression (acos (expr.value ()), expr.gradient () * mult);
+}
+
+template <typename T, typename TExpression = CommonExpression<T>::Type>
+TExpression asin (T&& expr) {
+    auto mult = One<TExpression> () /
+    sqrt (One<TExpression> () - expr.value () * expr.value ());
+    return TExpression (asin (expr.value ()), expr.gradient () * mult);
+}
+
+template <typename T, typename TExpression = CommonExpression<T>::Type>
+TExpression atan (T&& expr) {
+    auto mult =
+    One<TExpression> () / (One<TExpression> () + expr.value () * expr.value ());
+    return TExpression (atan (expr.value ()), expr.gradient () * mult);
+}
+
+template <typename T, typename TExpression = CommonExpression<T>::Type>
+TExpression cos (T&& expr) {
+    return TExpression (cos (expr.value ()), -expr.gradient () * sin (expr.value ()));
+}
+
+template <typename T, typename TExpression = CommonExpression<T>::Type>
+TExpression cosh (T&& expr) {
+    return TExpression (cosh (expr.value ()), expr.gradient () * sinh (expr.value ()));
+}
+
+template <typename T, typename TExpression = CommonExpression<T>::Type>
+TExpression erf (T&& expr) {
+    constexpr typename ExpressionInfo<TExpression>::Type TwoDivSqrtPi =
+    2.0 / 1.7724538509055160272981674833411451872554456638435;
+    return TExpression (erf (expr.value ()),
+                        expr.gradient () * TwoDivSqrtPi *
+                        exp (-expr.value () * expr.value ()));
+}
+
+template <typename T, typename TExpression = CommonExpression<T>::Type>
+TExpression exp (T&& expr) {
+    auto newValue = exp (expr.value ());
+    return TExpression (newValue, expr.gradient () * newValue);
+}
+
+template <typename T, typename TExpression = CommonExpression<T>::Type>
+TExpression log (T&& expr) {
+    auto mult = One<TExpression> / expr.value ();
+    return TExpression (log (expr.value ()), expr.gradient () * mult);
+}
+
+template <typename T, typename TExpression = CommonExpression<T>::Type>
+TExpression log10 (T&& expr) {
+    constexpr typename ExpressionInfo<TExpression>::Type ln10 = 2.3025850929940456840179914546843;
+    auto mult = One<TExpression> / (expr.value () * ln10);
+    return TExpression (log10 (expr.value ()), expr.gradient () * mult);
+}
+
+template <typename T, typename TExpression = CommonExpression<T>::Type>
+TExpression sin (T&& expr) {
+    return TExpression (sin (expr.value ()), expr.gradient () * cos (expr.value ()));
+}
+
+template <typename T, typename TExpression = CommonExpression<T>::Type>
+TExpression sinh (T&& expr) {
+    return TExpression (sinh (expr.value ()), expr.gradient () * cosh (expr.value ()));
+}
+
+template <typename T, typename TExpression = CommonExpression<T>::Type>
+TExpression sqrt (T&& expr) {
+    auto newValue = sqrt (expr.value ());
+    return TExpression (newValue,
+                        expr.gradient () * ExpressionInfo<TExpression>::Type (0.5) / newValue);
+}
+
+template <typename T, typename TExpression = CommonExpression<T>::Type>
+TExpression tan (T&& expr) {
+    auto cosValue = cosh (expr.value ());
+    auto mult     = One<TExpression> / (cosValue * cosValue);
+    return TExpression (tan (expr.value ()), expr.gradient () * mult);
+}
+
+template <typename T, typename TExpression = CommonExpression<T>::Type>
+TExpression tanh (T&& expr) {
+    auto cosHValue = cosh (expr.value ());
+    auto mult      = One<TExpression> / (cosHValue * cosHValue);
+    return TExpression (tanh (expr.value ()), expr.gradient () * mult);
 }
 
 } // namespace OptiSik
