@@ -93,6 +93,15 @@ TEST(AutoDiff, AssignDerivative) {
   EXPECT_DOUBLE_EQ(getDerivative<2>(res), 2.25);
 }
 
+TEST(AutoDiff, powInt) {
+  Expression<double> x = 4.0;
+  const auto powFunc = [](Expression<double> x) {
+      return pow<7>(x);
+  };
+  EXPECT_DOUBLE_EQ(powFunc(x), pow<7>(4.0));
+  EXPECT_DOUBLE_EQ(getDerivative<1>(computeDerivative(powFunc, WithRespectTo(x), x)), 7.0 * pow<6>(4.0));
+}
+
 TEST(AutoDiff, AbsDerivative) {
   Expression<double> x = -10.0;
   const auto absFunc = [](Expression<double> x) {
@@ -271,3 +280,46 @@ TEST(AutoDiff, atan2) {
   };
   EXPECT_DOUBLE_EQ(getDerivative<1>(computeDerivative(atan2FuncVE, WithRespectTo(y), 4.0, y)), -0.16);
 }
+
+TEST(AutoDiff, HigherOrderPow) {
+  using Exp3 = Expression3<double>;
+  Exp3 a = 3.0;
+  Exp3 b = 4.0;
+  const auto func = [](Exp3 a, Exp3 b) {
+      return pow(a,b);
+  };
+  auto res = computeDerivative(func, WithRespectTo(a,a,a), a, b);
+  EXPECT_DOUBLE_EQ(getDerivative<0>(res), 81.0);
+  EXPECT_DOUBLE_EQ(getDerivative<1>(res), 108.0);
+  EXPECT_DOUBLE_EQ(getDerivative<2>(res), 108.0);
+  EXPECT_DOUBLE_EQ(getDerivative<3>(res), 72.0);
+}
+
+TEST(AutoDiff, HigherOrderPow2) {
+  using Exp3 = Expression3<double>;
+  Exp3 a = 3.0;
+  Exp3 b = 4.0;
+  const auto func = [](Exp3 a, Exp3 b) {
+      return pow(a,b);
+  };
+  auto res = computeDerivative(func, WithRespectTo(b,b,b), a, b);
+  EXPECT_DOUBLE_EQ(getDerivative<0>(res), 81.0);
+  EXPECT_DOUBLE_EQ(getDerivative<1>(res), 81.0 * log(3));
+  EXPECT_DOUBLE_EQ(getDerivative<2>(res), 81.0 * pow<2>(log(3)));
+  EXPECT_DOUBLE_EQ(getDerivative<3>(res), 81.0 * pow<3>(log(3)));
+}
+
+// TEST(AutoDiff, HigherOrderFunctions) {
+//   using Exp3 = Expression3<double>;
+//   Exp3 a = 3.0;
+//   Exp3 b = 4.0;
+//   Exp3 c = 5.0;
+//   const auto func = [](Exp3 a, Exp3 b, Exp3 c) {
+//       return abs(sin(a + exp(b)) * log(c) + pow(a,b) * atan2(b, c) / sinh(a));
+//   };
+//   auto res = computeDerivative(func, WithRespectTo(a, b, c), a, b, c);
+//   EXPECT_DOUBLE_EQ(getDerivative<0>(res), 6.8512987317001866);
+//   EXPECT_DOUBLE_EQ(getDerivative<1>(res), 11.0);
+//   EXPECT_DOUBLE_EQ(getDerivative<2>(res), 1.0);
+//   EXPECT_DOUBLE_EQ(getDerivative<3>(res), 1.0);
+// }

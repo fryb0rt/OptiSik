@@ -1,5 +1,8 @@
 #pragma once
+#include "utils/mathUtils.h"
 #include <cmath>
+
+
 namespace OptiSik {
 
 //=============================================================================
@@ -175,11 +178,11 @@ struct CommonExpression {
 //=============================================================================
 
 template <typename T> constexpr auto One () {
-    return static_cast<ExpressionInfo<T>::Type> (1);
+    return static_cast<T::TValueType> (1);
 }
 
 template <typename T> constexpr auto Zero () {
-    return static_cast<ExpressionInfo<T>::Type> (0);
+    return static_cast<T::TValueType> (0);
 }
 
 //=============================================================================
@@ -263,31 +266,39 @@ using std::sqrt;
 using std::tan;
 using std::tanh;
 
+template <size_t TExp, typename T, typename TExpression = CommonExpression<T>::Type>
+TExpression pow (T&& base) {
+    auto newValue = pow<TExp> (base.value ());
+    auto mult     = TExp * pow<TExp - 1> (base.value ());
+    return TExpression (newValue, base.gradient () * mult);
+}
+
 template <typename T, typename TExpression = CommonExpression<T>::Type>
 TExpression abs (T&& expr) {
-    auto mult = expr.value () >= Zero<TExpression> () ? One<TExpression> () :
-                                                        -One<TExpression> ();
+    auto mult = static_cast<ExpressionInfo<TExpression>::Type> (expr.value ()) >=
+    static_cast<ExpressionInfo<TExpression>::Type> (0) ?
+    One<TExpression> () :
+    -One<TExpression> ();
     return TExpression (abs (expr.value ()), expr.gradient () * mult);
 }
 
 template <typename T, typename TExpression = CommonExpression<T>::Type>
 TExpression acos (T&& expr) {
-    auto mult = -One<TExpression> () /
-    sqrt (One<TExpression> () - expr.value () * expr.value ());
+    auto mult =
+    -One<TExpression> () / sqrt (One<TExpression> () - pow<2> (expr.value ()));
     return TExpression (acos (expr.value ()), expr.gradient () * mult);
 }
 
 template <typename T, typename TExpression = CommonExpression<T>::Type>
 TExpression asin (T&& expr) {
-    auto mult = One<TExpression> () /
-    sqrt (One<TExpression> () - expr.value () * expr.value ());
+    auto mult =
+    One<TExpression> () / sqrt (One<TExpression> () - pow<2> (expr.value ()));
     return TExpression (asin (expr.value ()), expr.gradient () * mult);
 }
 
 template <typename T, typename TExpression = CommonExpression<T>::Type>
 TExpression atan (T&& expr) {
-    auto mult =
-    One<TExpression> () / (One<TExpression> () + expr.value () * expr.value ());
+    auto mult = One<TExpression> () / (One<TExpression> () + pow<2> (expr.value ()));
     return TExpression (atan (expr.value ()), expr.gradient () * mult);
 }
 
@@ -306,8 +317,7 @@ TExpression erf (T&& expr) {
     constexpr typename ExpressionInfo<TExpression>::Type TwoDivSqrtPi =
     2.0 / 1.7724538509055160272981674833411451872554456638435;
     return TExpression (erf (expr.value ()),
-                        expr.gradient () * TwoDivSqrtPi *
-                        exp (-expr.value () * expr.value ()));
+                        expr.gradient () * TwoDivSqrtPi * exp (-pow<2> (expr.value ())));
 }
 
 template <typename T, typename TExpression = CommonExpression<T>::Type>
@@ -350,14 +360,14 @@ TExpression sqrt (T&& expr) {
 template <typename T, typename TExpression = CommonExpression<T>::Type>
 TExpression tan (T&& expr) {
     auto cosValue = cos (expr.value ());
-    auto mult     = One<TExpression> () / (cosValue * cosValue);
+    auto mult     = One<TExpression> () / pow<2> (cosValue);
     return TExpression (tan (expr.value ()), expr.gradient () * mult);
 }
 
 template <typename T, typename TExpression = CommonExpression<T>::Type>
 TExpression tanh (T&& expr) {
     auto cosHValue = cosh (expr.value ());
-    auto mult      = One<TExpression> () / (cosHValue * cosHValue);
+    auto mult      = One<TExpression> () / pow<2> (cosHValue);
     return TExpression (tanh (expr.value ()), expr.gradient () * mult);
 }
 
@@ -372,34 +382,32 @@ using std::pow;
 template <typename TBase, typename TExp, typename TExpression = CommonExpression2<TBase, TExp>::Type>
 TExpression pow (TBase&& base, TExp&& exp) {
     if constexpr (!IsExpression<TExp>::value) {
-        auto newValue = std::pow (base.value (), exp);
-        auto mult = exp * std::pow (base.value (), exp - One<TExpression> ());
-        return TExpression (newValue, base.gradient () * mult);
+        auto newValue = pow (base.value (), exp - One<TExpression> ());
+        return TExpression (newValue * base.value (), exp * newValue * base.gradient ());
     } else if constexpr (!IsExpression<TBase>::value) {
-        auto newValue = std::pow (base, exp.value ());
-        auto mult     = newValue * log (base);
-        return TExpression (newValue, exp.gradient () * mult);
+        auto newValue = pow (base, exp.value ());
+        return TExpression (newValue, exp.gradient () * newValue * log (base));
     } else {
-        auto newValue = std::pow (base.value (), exp.value ());
-        auto multBase =
-        exp.value () * std::pow (base.value (), exp.value () - One<TExpression> ());
-        auto multExp = newValue * log (base.value ());
-        return TExpression (newValue, base.gradient () * multBase + exp.gradient () * multExp);
+        auto newValue = pow (base.value (), exp.value ());
+        return TExpression (newValue,
+                            newValue *
+                            (log (base.value ()) * exp.gradient () +
+                             exp.value () / base.value () * base.gradient ()));
     }
 }
 
 template <typename TNum, typename TDen, typename TExpression = CommonExpression2<TNum, TDen>::Type>
 TExpression atan2 (TNum&& num, TDen&& den) {
     if constexpr (!IsExpression<TDen>::value) {
-        auto denom = den * den + num.value () * num.value ();
+        auto denom = pow<2> (den) + pow<2> (num.value ());
         auto mult  = den / denom;
         return TExpression (atan2 (num.value (), den), num.gradient () * mult);
     } else if constexpr (!IsExpression<TNum>::value) {
-        auto denom = den.value () * den.value () + num * num;
+        auto denom = pow<2> (den.value ()) + pow<2> (num);
         auto mult  = -num / denom;
         return TExpression (atan2 (num, den.value ()), den.gradient () * mult);
     } else {
-        auto denom = den.value () * den.value () + num.value () * num.value ();
+        auto denom = pow<2> (den.value ()) + pow<2> (num.value ());
         return TExpression (atan2 (num.value (), den.value ()),
                             (den.value () * num.gradient () - num.value () * den.gradient ()) / denom);
     }
