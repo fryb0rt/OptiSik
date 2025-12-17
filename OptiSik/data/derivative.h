@@ -47,13 +47,13 @@ template <typename... TArgs> class WithRespectTo {
 };
 
 template <typename TFunctor, typename... TWithRespectToArgs, typename... TArgs>
-auto computeDerivative (const TFunctor& functor, const WithRespectTo<TWithRespectToArgs...>& wrt, TArgs&&... args) {
+auto computeDerivative (TFunctor&& functor, const WithRespectTo<TWithRespectToArgs...>& wrt, TArgs&&... args) {
     return functor (std::forward<TArgs> (args)...);
 }
 
 template <size_t TOrder = 1, typename TExpression>
-auto getDerivative (const TExpression& expression) {
-    static_assert (TOrder <= ExpressionInfo<TExpression>::order,
+auto getDerivative (TExpression&& expression) {
+    static_assert (TOrder <= ExpressionInfo<std::decay_t<TExpression>>::order,
     "Requested derivative order exceeds expression order");
     if constexpr (TOrder == 0)  
         return expressionValue (expression.value ());

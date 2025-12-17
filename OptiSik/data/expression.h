@@ -229,7 +229,7 @@ template <typename TLeft, typename TRight, typename TExpression = typename Commo
 TExpression operator/ (TLeft&& left, TRight&& right) {
     if constexpr (!IsExpression<TLeft>::value) {
         return TExpression (left / right.value (),
-                            -(left.value () * right.gradient ()) /
+                            -(left * right.gradient ()) /
                             (right.value () * right.value ()));
     } else if constexpr (!IsExpression<TRight>::value) {
         return TExpression (left.value () / right, left.gradient () / right);
@@ -243,7 +243,7 @@ TExpression operator/ (TLeft&& left, TRight&& right) {
 
 //=============================================================================
 //
-// Function overloads
+// Function overloads - single variable
 //
 //=============================================================================
 
@@ -318,14 +318,14 @@ TExpression exp (T&& expr) {
 
 template <typename T, typename TExpression = CommonExpression<T>::Type>
 TExpression log (T&& expr) {
-    auto mult = One<TExpression> / expr.value ();
+    auto mult = One<TExpression>() / expr.value ();
     return TExpression (log (expr.value ()), expr.gradient () * mult);
 }
 
 template <typename T, typename TExpression = CommonExpression<T>::Type>
 TExpression log10 (T&& expr) {
     constexpr typename ExpressionInfo<TExpression>::Type ln10 = 2.3025850929940456840179914546843;
-    auto mult = One<TExpression> / (expr.value () * ln10);
+    auto mult = One<TExpression>() / (expr.value () * ln10);
     return TExpression (log10 (expr.value ()), expr.gradient () * mult);
 }
 
@@ -343,21 +343,47 @@ template <typename T, typename TExpression = CommonExpression<T>::Type>
 TExpression sqrt (T&& expr) {
     auto newValue = sqrt (expr.value ());
     return TExpression (newValue,
-                        expr.gradient () * ExpressionInfo<TExpression>::Type (0.5) / newValue);
+                        expr.gradient () * (typename ExpressionInfo<TExpression>::Type (0.5) / newValue));
 }
 
 template <typename T, typename TExpression = CommonExpression<T>::Type>
 TExpression tan (T&& expr) {
-    auto cosValue = cosh (expr.value ());
-    auto mult     = One<TExpression> / (cosValue * cosValue);
+    auto cosValue = cos (expr.value ());
+    auto mult     = One<TExpression>() / (cosValue * cosValue);
     return TExpression (tan (expr.value ()), expr.gradient () * mult);
 }
 
 template <typename T, typename TExpression = CommonExpression<T>::Type>
 TExpression tanh (T&& expr) {
     auto cosHValue = cosh (expr.value ());
-    auto mult      = One<TExpression> / (cosHValue * cosHValue);
+    auto mult      = One<TExpression>() / (cosHValue * cosHValue);
     return TExpression (tanh (expr.value ()), expr.gradient () * mult);
 }
 
+//=============================================================================
+//
+// Function overloads - two variables
+//
+//=============================================================================
+using std::pow;
+
+template <typename TBase, typename TExp, typename TExpression = CommonExpression2<TBase, TExp>::Type>
+TExpression pow (TBase&& base, TExp&& exp) {
+    if constexpr (!IsExpression<TExp>::value) {
+        auto newValue = std::pow (base.value (), exp);
+        auto mult     = exp * std::pow (base.value (), exp - One<TExpression> ());
+        return TExpression (newValue, base.gradient () * mult);
+    } else if constexpr (!IsExpression<TBase>::value) {
+        auto newValue = std::pow (base, exp.value ());
+        auto mult     = newValue * log (base);
+        return TExpression (newValue, exp.gradient () * mult);
+    } else {
+        auto newValue = std::pow (base.value (), exp.value ());
+        auto multBase = exp.value () * std::pow (base.value (), exp.value () - One<TExpression> ());
+        auto multExp  = newValue * log (base.value ());
+        return TExpression (newValue,
+                            base.gradient () * multBase +
+                            exp.gradient () * multExp);
+    }
+}
 } // namespace OptiSik
