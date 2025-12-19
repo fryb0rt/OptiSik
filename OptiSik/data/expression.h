@@ -10,16 +10,18 @@ namespace OptiSik {
 // Class representing an expression with automatic differentiation support
 //
 //=============================================================================
-template <typename T> class Expression {
+template <typename T>
+class Expression {
     T mValue;
     T mGrad;
 
-    public:
+public:
     using TValueType = T;
     Expression() : mValue(T(0)), mGrad(T(0)) {
     }
 
-    template <typename U> Expression(U&& value) {
+    template <typename U>
+    Expression(U&& value) {
         *this = std::forward<U>(value);
     }
 
@@ -30,7 +32,8 @@ template <typename T> class Expression {
     : mValue(std::move(value)), mGrad(std::move(grad)) {
     }
 
-    template <typename U> Expression& operator=(U&& value) {
+    template <typename U>
+    Expression& operator=(U&& value) {
         if constexpr (std::is_same_v<std::decay_t<U>, Expression<T>>) {
             mValue = value.value();
             mGrad  = value.gradient();
@@ -41,7 +44,8 @@ template <typename T> class Expression {
         return *this;
     }
 
-    template <typename U> operator U() const {
+    template <typename U>
+    operator U() const {
         return static_cast<U>(mValue);
     }
 
@@ -63,19 +67,23 @@ template <typename T> class Expression {
     Expression<T>& operator+() const {
         return *this;
     }
-    template <typename U> Expression<T>& operator+=(U&& other) {
+    template <typename U>
+    Expression<T>& operator+=(U&& other) {
         *this = *this + other;
         return *this;
     }
-    template <typename U> Expression<T>& operator-=(U&& other) {
+    template <typename U>
+    Expression<T>& operator-=(U&& other) {
         *this = *this - other;
         return *this;
     }
-    template <typename U> Expression<T>& operator*=(U&& other) {
+    template <typename U>
+    Expression<T>& operator*=(U&& other) {
         *this = *this * other;
         return *this;
     }
-    template <typename U> Expression<T> operator/=(U&& other) {
+    template <typename U>
+    Expression<T> operator/=(U&& other) {
         *this = *this / other;
         return *this;
     }
@@ -88,21 +96,25 @@ template <typename T> class Expression {
 //=============================================================================
 
 namespace {
-template <size_t TOrder, typename T> class ExpressionHigherOrderAux {
-    public:
+template <size_t TOrder, typename T>
+class ExpressionHigherOrderAux {
+public:
     using Type = Expression<typename ExpressionHigherOrderAux<TOrder - 1, T>::Type>;
 };
 
-template <typename T> class ExpressionHigherOrderAux<0, T> {
-    public:
+template <typename T>
+class ExpressionHigherOrderAux<0, T> {
+public:
     using Type = T;
 };
 } // namespace
 template <size_t TOrder, typename T>
 using ExpressionHigherOrder = typename ExpressionHigherOrderAux<TOrder, T>::Type;
 
-template <typename T> using Expression2 = ExpressionHigherOrder<2, T>;
-template <typename T> using Expression3 = ExpressionHigherOrder<3, T>;
+template <typename T>
+using Expression2 = ExpressionHigherOrder<2, T>;
+template <typename T>
+using Expression3 = ExpressionHigherOrder<3, T>;
 
 //=============================================================================
 //
@@ -110,19 +122,22 @@ template <typename T> using Expression3 = ExpressionHigherOrder<3, T>;
 //
 //=============================================================================
 
-template <typename T> class ExpressionInfo {
-    public:
+template <typename T>
+class ExpressionInfo {
+public:
     static constexpr size_t order = 0;
     using Type                    = T;
 };
 
-template <typename T> class ExpressionInfo<Expression<T>> {
-    public:
+template <typename T>
+class ExpressionInfo<Expression<T>> {
+public:
     static constexpr size_t order = ExpressionInfo<T>::order + 1;
     using Type                    = typename ExpressionInfo<T>::Type;
 };
 
-template <typename T> constexpr auto expressionValue(T&& expression) {
+template <typename T>
+constexpr auto expressionValue(T&& expression) {
     if constexpr (std::is_arithmetic_v<std::decay_t<T>>)
         return expression;
     else
@@ -130,19 +145,23 @@ template <typename T> constexpr auto expressionValue(T&& expression) {
 }
 
 namespace {
-template <typename T> struct IsExpressionAux {
+template <typename T>
+struct IsExpressionAux {
     static constexpr bool value = false;
 };
 
-template <typename T> struct IsExpressionAux<Expression<T>> {
+template <typename T>
+struct IsExpressionAux<Expression<T>> {
     static constexpr bool value = true;
 };
 
-template <typename T> struct IsExpression {
+template <typename T>
+struct IsExpression {
     static constexpr bool value = IsExpressionAux<std::decay_t<T>>::value;
 };
 
-template <typename TLeft, typename TRight> struct CommonExpressionAux2 {};
+template <typename TLeft, typename TRight>
+struct CommonExpressionAux2 {};
 
 template <typename T, typename TRight>
 struct CommonExpressionAux2<Expression<T>, TRight> {
@@ -177,11 +196,13 @@ struct CommonExpression {
 //
 //=============================================================================
 
-template <typename T> constexpr auto One() {
+template <typename T>
+constexpr auto One() {
     return static_cast<T::TValueType>(1);
 }
 
-template <typename T> constexpr auto Zero() {
+template <typename T>
+constexpr auto Zero() {
     return static_cast<T::TValueType>(0);
 }
 

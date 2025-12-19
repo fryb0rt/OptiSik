@@ -6,22 +6,26 @@
 namespace OptiSik {
 
 /// Helper struct for integer operations
-template <typename T, typename TInteger> struct IntegerOperations {
+template <typename T, typename TInteger>
+struct IntegerOperations {
     static T removeFraction(T value) {
         return T(TInteger(value));
     }
 };
 
 /// Helper struct for tolerance value
-template <typename T> struct Tolerance {
+template <typename T>
+struct Tolerance {
     static constexpr T tolerance = T(1e-6f);
 };
 
-template <typename T> struct IsArithmeticType {
+template <typename T>
+struct IsArithmeticType {
     static constexpr bool value = std::is_arithmetic_v<std::decay_t<T>>;
 };
 
-template <typename T> constexpr bool IsArithmetic = IsArithmeticType<T>::value;
+template <typename T>
+constexpr bool IsArithmetic = IsArithmeticType<T>::value;
 
 /// Integer exponent power function
 template <size_t TExp, typename T, typename = std::enable_if_t<IsArithmetic<T>>>

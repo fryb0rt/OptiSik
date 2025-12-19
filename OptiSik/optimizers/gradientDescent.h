@@ -7,8 +7,9 @@
 namespace OptiSik {
 
 /// Simple gradient descent optimizer for unconstrained minimization
-template <typename T, typename TVector = Vector<T>> class GradientDescent {
-    public:
+template <typename T, typename TVector = Vector<T>>
+class GradientDescent {
+public:
     struct Config {
         T learningRate       = T(0.01);
         size_t maxIterations = 1000;

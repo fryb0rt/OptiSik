@@ -19,7 +19,7 @@ class LUMatrix {
     /// Number of row exchanges performed during decomposition
     size_t mRowExchanges;
 
-    public:
+public:
     /// Constructor that performs LU decomposition with partial pivoting
     LUMatrix(const TMatrix& A)
     : mLU(A), mPermutations(A.rows()), mRowExchanges(0) {

@@ -37,7 +37,7 @@ class WithRespectToInternal<TGradientIndex, TExpression, TArgs...> {
 
     TExpression& mExpr;
 
-    public:
+public:
     WithRespectToInternal(TExpression& e, TArgs&... args)
     : mExpr(e), mNext(args...) {
         setGradient<TGradientIndex>(mExpr, typename ExpressionInfo<TExpression>::Type(1));
@@ -46,16 +46,17 @@ class WithRespectToInternal<TGradientIndex, TExpression, TArgs...> {
         setGradient<TGradientIndex>(mExpr, typename ExpressionInfo<TExpression>::Type(0));
     }
 
-    private:
+private:
 };
 
 } // namespace
 
-template <typename... TArgs> class WithRespectTo {
-    private:
+template <typename... TArgs>
+class WithRespectTo {
+private:
     WithRespectToInternal<1, TArgs...> mImpl;
 
-    public:
+public:
     WithRespectTo(TArgs&... args) : mImpl(args...) {
     }
 };

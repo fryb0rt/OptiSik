@@ -8,10 +8,10 @@ namespace OptiSik {
 
 /// Exception class for computation errors
 class computationError : public std::exception {
-    private:
+private:
     std::string message;
 
-    public:
+public:
     computationError(const std::string& msg) : message(msg) {
     }
 

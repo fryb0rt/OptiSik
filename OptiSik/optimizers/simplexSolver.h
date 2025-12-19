@@ -21,7 +21,7 @@ class SimplexSolver {
     using IntegerOperations      = IntegerOperations<T, TInteger>;
     static constexpr T tolerance = TTolerance::tolerance;
 
-    public:
+public:
     /// Specifies the type of constraint
     enum class ConstraintType { LEQUAL = 0, GEQUAL = 1, EQUAL = 2 };
 
@@ -45,7 +45,7 @@ class SimplexSolver {
     /// Specifies whether the variable is integer or float
     enum class VariableType { FLOAT = 0, INTEGER = 1 };
 
-    private:
+private:
     /// Defines an optimized variable
     struct Variable {
         /// Cost coefficient in the cost function
@@ -74,7 +74,7 @@ class SimplexSolver {
     /// Number of original variables
     const size_t mVariableCount;
 
-    public:
+public:
     /// Creates a simplex solver with the given number of variables
     /// Initializes all variables to be float, have cost 1 and non-negative
     /// bounds
@@ -359,7 +359,7 @@ class SimplexSolver {
         return ok;
     }
 
-    private:
+private:
     /// Equation used internally during optimization
     /// constant = coefs * x
     struct Equation {

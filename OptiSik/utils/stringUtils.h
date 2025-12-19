@@ -25,7 +25,8 @@ inline std::vector<std::string> split(const std::string& s, char c, bool keepEmp
 
 /// Parses a list of values of type T from a string, separated by the given
 /// character delimiter
-template <typename T> std::vector<T> parseList(const std::string& s, char sep) {
+template <typename T>
+std::vector<T> parseList(const std::string& s, char sep) {
     int start = 0, end = int(s.size());
     while (start < end && !std::isdigit(s[start])) {
         ++start;
