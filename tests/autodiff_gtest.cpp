@@ -342,3 +342,55 @@ TEST(AutoDiff, Gradient) {
     EXPECT_DOUBLE_EQ(result[1], -72.089431210219814);
     EXPECT_DOUBLE_EQ(result[2], -10.030853028022817);
 }
+
+TEST(AutoDiff, Hessian) {
+    using Exp2      = Expression2<double>;
+    Exp2 x          = 1.0;
+    Exp2 y          = 2.0;
+    const auto func = [](Exp2 x, Exp2 y) {
+        return pow<3>(x) - 2 * x * y - pow<6>(y);
+    };
+    EXPECT_DOUBLE_EQ(getDerivative<2>(computeDerivative(func, WithRespectTo(x, x), x, y)), 6.0);
+    EXPECT_DOUBLE_EQ(getDerivative<2>(computeDerivative(func, WithRespectTo(x, y), x, y)),
+                     -2.0);
+    EXPECT_DOUBLE_EQ(getDerivative<2>(computeDerivative(func, WithRespectTo(y, x), x, y)),
+                     -2.0);
+    EXPECT_DOUBLE_EQ(getDerivative<2>(computeDerivative(func, WithRespectTo(y, y), x, y)),
+                     -480.0);
+    SMatrix<double, 2, 2> result = hessian(func, x, y);
+    EXPECT_DOUBLE_EQ(result(0, 0), 6.0);
+    EXPECT_DOUBLE_EQ(result(0, 1), -2.0);
+    EXPECT_DOUBLE_EQ(result(1, 0), -2.0);
+    EXPECT_DOUBLE_EQ(result(1, 1), -480.0);
+}
+
+TEST(AutoDiff, Hessian3) {
+    using Exp3      = Expression3<double>;
+    Exp3 a          = 3.0;
+    Exp3 b          = 4.0;
+    Exp3 c          = 5.0;
+    const auto func = [](Exp3 a, Exp3 b, Exp3 c) {
+        return abs(sin(a + exp(b)) * log(c) + pow(a, b) * atan2(b, c) / sinh(a));
+    };
+    SMatrix<double, 3, 3> test;
+    test(0, 0) =
+    getDerivative<2>(computeDerivative(func, WithRespectTo(a, a), a, b, c));
+    test(0, 1) =
+    getDerivative<2>(computeDerivative(func, WithRespectTo(a, b), a, b, c));
+    test(0, 2) =
+    getDerivative<2>(computeDerivative(func, WithRespectTo(a, c), a, b, c));
+    test(1, 0) =
+    getDerivative<2>(computeDerivative(func, WithRespectTo(b, a), a, b, c));
+    test(1, 1) =
+    getDerivative<2>(computeDerivative(func, WithRespectTo(b, b), a, b, c));
+    test(1, 2) =
+    getDerivative<2>(computeDerivative(func, WithRespectTo(b, c), a, b, c));
+    test(2, 0) =
+    getDerivative<2>(computeDerivative(func, WithRespectTo(c, a), a, b, c));
+    test(2, 1) =
+    getDerivative<2>(computeDerivative(func, WithRespectTo(c, b), a, b, c));
+    test(2, 2) =
+    getDerivative<2>(computeDerivative(func, WithRespectTo(c, c), a, b, c));
+    SMatrix<double, 3, 3> result = hessian(func, a, b, c);
+    EXPECT_TRUE(result == test);
+}

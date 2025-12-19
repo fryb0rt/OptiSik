@@ -1,6 +1,8 @@
 #pragma once
 #include "data/expression.h"
+#include "data/matrix.h"
 #include "data/vector.h"
+
 
 namespace OptiSik {
 
@@ -95,6 +97,49 @@ template <typename TFunctor, typename... TArgs>
 auto gradient(TFunctor&& functor, TArgs&... args) {
     WithRespectTo<TArgs...> wrt(args...);
     return derivative(functor, wrt, args...);
+}
+
+namespace {
+
+template <size_t index, typename T, typename... TArgs>
+auto get(T& arg0, TArgs&... args) {
+    if constexpr (index == 0) {
+        return &arg0;
+    } else {
+        return get<index - 1>(args...);
+    }
+}
+
+template <size_t TRowIndex, size_t TColumnIndex, typename THessian, typename TFunctor, typename... TArgs>
+void hessianColumn(THessian& hessian, TFunctor&& functor, TArgs&... args) {
+    if constexpr (hessian.cols() > TColumnIndex) {
+        {
+            // We use separate block to make sure wrt is destroyed before computing next item in the matrix
+            WithRespectTo wrt(*get<TRowIndex>(args...), *get<TColumnIndex>(args...));
+            auto d = computeDerivative(functor, wrt, args...);
+            hessian(TRowIndex, TColumnIndex) = getDerivative<2>(d);
+        }
+        hessianColumn<TRowIndex, TColumnIndex + 1>(hessian, functor, args...);
+    }
+}
+
+template <size_t TRowIndex, typename THessian, typename TFunctor, typename... TArgs>
+void hessianRow(THessian& hessian, TFunctor&& functor, TArgs&... args) {
+    if constexpr (hessian.rows() > TRowIndex) {
+        hessianColumn<TRowIndex, 0>(hessian, functor, args...);
+        hessianRow<TRowIndex + 1>(hessian, functor, args...);
+    }
+}
+} // namespace
+
+template <typename TFunctor, typename... TArgs>
+auto hessian(TFunctor&& functor, TArgs&... args) {
+    constexpr size_t N = sizeof...(TArgs);
+    using ExprType = std::decay_t<decltype(functor(args...))>;
+    using T = ExpressionInfo<ExprType>::Type;
+    SMatrix<T, N, N> result;
+    hessianRow<0>(result, functor, args...);
+    return result;
 }
 
 } // namespace OptiSik
