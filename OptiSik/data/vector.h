@@ -6,18 +6,22 @@
 #include <ostream>
 #include <stdexcept>
 #include <vector>
+#include <array>
 
 
 namespace OptiSik {
 
-template <typename T> class Vector {
-    std::vector<T> mData;
+template <typename T, typename TUnderlying = std::vector<T>> class Vector {
+    TUnderlying mData;
 
     public:
+    explicit Vector () {
+        static_assert(mData.size() > 0, "The Vector() constructor can be used only for underlying types with implicit non-zero size.");
+    }
     explicit Vector (const size_t n) : mData (n, T (0)) {
     }
 
-    explicit Vector (const std::vector<T>& values) : mData (values) {
+    explicit Vector (const TUnderlying& values) : mData (values) {
     }
 
     size_t dimension () const {
@@ -31,7 +35,8 @@ template <typename T> class Vector {
         return mData[i];
     }
 
-    T dot (const Vector& other) const {
+    template<typename U>
+    T dot (const Vector<T,U>& other) const {
         if (dimension () != other.dimension ()) {
             throw invalidArgument ("Dimension mismatch");
         }
@@ -50,7 +55,8 @@ template <typename T> class Vector {
         return sqrt (squaredMagnitude ());
     }
 
-    Vector operator+ (const Vector& other) const {
+    template<typename U>
+    Vector operator+ (const Vector<T,U>& other) const {
         if (dimension () != other.dimension ()) {
             throw invalidArgument ("Dimension mismatch");
         }
@@ -61,7 +67,8 @@ template <typename T> class Vector {
         return Vector (result);
     }
 
-    Vector& operator+= (const Vector& other) {
+    template<typename U>
+    Vector& operator+= (const Vector<T,U>& other) {
         if (dimension () != other.dimension ()) {
             throw invalidArgument ("Dimension mismatch");
         }
@@ -107,7 +114,8 @@ template <typename T> class Vector {
         return *this;
     }
 
-    Vector operator- (const Vector& other) const {
+    template<typename U>
+    Vector operator- (const Vector<T,U>& other) const {
         if (dimension () != other.dimension ()) {
             throw invalidArgument ("Dimension mismatch");
         }
@@ -118,7 +126,8 @@ template <typename T> class Vector {
         return Vector (result);
     }
 
-    Vector& operator-= (const Vector& other) {
+    template<typename U>
+    Vector& operator-= (const Vector<T,U>& other) {
         if (dimension () != other.dimension ()) {
             throw invalidArgument ("Dimension mismatch");
         }
@@ -135,7 +144,8 @@ template <typename T> class Vector {
         return Vector (result);
     }
 
-    bool operator== (const Vector& other) const {
+    template<typename U>
+    bool operator== (const Vector<T,U>& other) const {
         if (dimension () != other.dimension ())
             return false;
         for (size_t i = 0; i < dimension (); ++i)
@@ -144,7 +154,8 @@ template <typename T> class Vector {
         return true;
     }
 
-    bool operator!= (const Vector& other) const {
+    template<typename U>
+    bool operator!= (const Vector<T,U>& other) const {
         return !(*this == other);
     }
 
@@ -219,7 +230,8 @@ template <typename T> class Vector {
         return m;
     }
 
-    bool epsilonEquals (const Vector& other, const T eps) const {
+    template<typename U>
+    bool epsilonEquals (const Vector<T,U>& other, const T eps) const {
         if (dimension () != other.dimension ())
             return false;
         T sum = T (0);
@@ -272,5 +284,8 @@ template <typename T> class Vector {
         return os;
     }
 };
+
+template<typename T, size_t size>
+using SVector = Vector<T, std::array<T, size>>;
 
 } // namespace OptiSik

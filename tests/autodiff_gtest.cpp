@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include "data/expression.h"
 #include "data/derivative.h"
+#include "data/vector.h"
 
 using namespace OptiSik;
 
@@ -334,6 +335,34 @@ TEST(AutoDiff, HigherOrderFunctions) {
   auto res = computeDerivative(func, WithRespectTo(a, b, c), a, b, c);
   EXPECT_DOUBLE_EQ(getDerivative<0>(res), 6.8512987317001866);
   EXPECT_DOUBLE_EQ(getDerivative<1>(res), 2.5929686716269345);
-  EXPECT_DOUBLE_EQ(getDerivative<2>(res), -72.089431210219814); // Check
-  EXPECT_DOUBLE_EQ(getDerivative<3>(res), -10.030853028022817); // Check
+  EXPECT_DOUBLE_EQ(getDerivative<2>(res), -72.089431210219814);
+  EXPECT_DOUBLE_EQ(getDerivative<3>(res), -10.030853028022817);
+}
+
+TEST(AutoDiff, DerivativeResultVector) {
+  using Exp3 = Expression3<double>;
+  Exp3 a = 3.0;
+  Exp3 b = 4.0;
+  Exp3 c = 5.0;
+  const auto func = [](Exp3 a, Exp3 b, Exp3 c) {
+      return abs(sin(a + exp(b)) * log(c) + pow(a,b) * atan2(b, c) / sinh(a));
+  };
+  SVector<double, 3> result = derivative(func, WithRespectTo(a, b, c), a, b, c);
+  EXPECT_DOUBLE_EQ(result[0], 2.5929686716269345);
+  EXPECT_DOUBLE_EQ(result[1], -72.089431210219814);
+  EXPECT_DOUBLE_EQ(result[2], -10.030853028022817);
+}
+
+TEST(AutoDiff, Gradient) {
+   using Exp3 = Expression3<double>;
+  Exp3 a = 3.0;
+  Exp3 b = 4.0;
+  Exp3 c = 5.0;
+  const auto func = [](Exp3 a, Exp3 b, Exp3 c) {
+      return abs(sin(a + exp(b)) * log(c) + pow(a,b) * atan2(b, c) / sinh(a));
+  };
+  SVector<double, 3> result = gradient(func, a, b, c);
+  EXPECT_DOUBLE_EQ(result[0], 2.5929686716269345);
+  EXPECT_DOUBLE_EQ(result[1], -72.089431210219814);
+  EXPECT_DOUBLE_EQ(result[2], -10.030853028022817);
 }

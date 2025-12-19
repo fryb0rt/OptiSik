@@ -1,5 +1,6 @@
 #pragma once
 #include "data/expression.h"
+#include "data/vector.h"
 
 namespace OptiSik {
 
@@ -16,13 +17,26 @@ void setGradient (TExpression& expr, typename ExpressionInfo<TExpression>::Type 
     }
 }
 
-template <size_t TOrder, typename... TArgs> class WithRespectToInternal {};
+template<typename TVector, typename TExpression>
+void getGradient(TVector& out, const TExpression& expr, const size_t index = 0) {
+    using EI = ExpressionInfo<TExpression>;
+    if constexpr(EI::order > 0) {
+        out[index] = static_cast<EI::Type>(expr.gradient());
+        if (EI::order > index) {
+            getGradient(out, expr.gradient(), index + 1);
+        }
+    }
+}
+
+template <size_t TGradientIndex, typename... TArgs> class WithRespectToInternal {
+};
 
 template <size_t TGradientIndex, typename TExpression, typename... TArgs>
 class WithRespectToInternal<TGradientIndex, TExpression, TArgs...> {
     WithRespectToInternal<TGradientIndex + 1, TArgs...> mNext;
 
     TExpression& mExpr;
+
     public:
     WithRespectToInternal (TExpression& e, TArgs&... args)
     : mExpr (e), mNext (args...) {
@@ -63,6 +77,19 @@ auto getDerivative (TExpression&& expression) {
         return getDerivative<TOrder - 1> (expression.gradient ());
 }
 
+template <typename TFunctor, typename... TWithRespectToArgs, typename... TArgs>
+auto derivative(TFunctor&& functor, const WithRespectTo<TWithRespectToArgs...>& wrt, TArgs&&... args) {
+    auto d = functor (std::forward<TArgs> (args)...);
+    using EI = ExpressionInfo<decltype(d)>;
+    SVector<typename EI::Type,EI::order> result;
+    getGradient(result, d);
+    return result;
+}
 
+template <typename TFunctor, typename... TArgs>
+auto gradient(TFunctor&& functor, TArgs&... args) {
+    WithRespectTo<TArgs...> wrt(args...);
+    return derivative(functor, wrt, args...);
+}
 
 } // namespace OptiSik
