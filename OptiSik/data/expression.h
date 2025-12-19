@@ -16,66 +16,66 @@ template <typename T> class Expression {
 
     public:
     using TValueType = T;
-    Expression () : mValue (T (0)), mGrad (T (0)) {
+    Expression() : mValue(T(0)), mGrad(T(0)) {
     }
 
-    template <typename U> Expression (U&& value) {
-        *this = std::forward<U> (value);
+    template <typename U> Expression(U&& value) {
+        *this = std::forward<U>(value);
     }
 
-    Expression (const T& value, const T& grad) : mValue (value), mGrad (grad) {
+    Expression(const T& value, const T& grad) : mValue(value), mGrad(grad) {
     }
 
-    Expression (T&& value, T&& grad)
-    : mValue (std::move (value)), mGrad (std::move (grad)) {
+    Expression(T&& value, T&& grad)
+    : mValue(std::move(value)), mGrad(std::move(grad)) {
     }
 
-    template <typename U> Expression& operator= (U&& value) {
+    template <typename U> Expression& operator=(U&& value) {
         if constexpr (std::is_same_v<std::decay_t<U>, Expression<T>>) {
-            mValue = value.value ();
-            mGrad  = value.gradient ();
+            mValue = value.value();
+            mGrad  = value.gradient();
         } else {
-            mValue = std::forward<U> (value);
-            mGrad  = T (0);
+            mValue = std::forward<U>(value);
+            mGrad  = T(0);
         }
         return *this;
     }
 
-    template <typename U> operator U () const {
-        return static_cast<U> (mValue);
+    template <typename U> operator U() const {
+        return static_cast<U>(mValue);
     }
 
-    T gradient () const {
+    T gradient() const {
         return mGrad;
     }
-    T value () const {
+    T value() const {
         return mValue;
     }
-    T& value () {
+    T& value() {
         return mValue;
     }
-    void setGradient (const T& grad) {
+    void setGradient(const T& grad) {
         mGrad = grad;
     }
-    Expression<T> operator- () const {
-        return Expression<T> (-mValue, -mGrad);
+    Expression<T> operator-() const {
+        return Expression<T>(-mValue, -mGrad);
     }
-    Expression<T>& operator+ () const {
+    Expression<T>& operator+() const {
         return *this;
     }
-    template <typename U> Expression<T>& operator+= (U&& other) {
+    template <typename U> Expression<T>& operator+=(U&& other) {
         *this = *this + other;
         return *this;
     }
-    template <typename U> Expression<T>& operator-= (U&& other) {
+    template <typename U> Expression<T>& operator-=(U&& other) {
         *this = *this - other;
         return *this;
     }
-    template <typename U> Expression<T>& operator*= (U&& other) {
+    template <typename U> Expression<T>& operator*=(U&& other) {
         *this = *this * other;
         return *this;
     }
-    template <typename U> Expression<T> operator/= (U&& other) {
+    template <typename U> Expression<T> operator/=(U&& other) {
         *this = *this / other;
         return *this;
     }
@@ -122,11 +122,11 @@ template <typename T> class ExpressionInfo<Expression<T>> {
     using Type                    = typename ExpressionInfo<T>::Type;
 };
 
-template <typename T> constexpr auto expressionValue (T&& expression) {
+template <typename T> constexpr auto expressionValue(T&& expression) {
     if constexpr (std::is_arithmetic_v<std::decay_t<T>>)
         return expression;
     else
-        return expressionValue (expression.value ());
+        return expressionValue(expression.value());
 }
 
 namespace {
@@ -177,12 +177,12 @@ struct CommonExpression {
 //
 //=============================================================================
 
-template <typename T> constexpr auto One () {
-    return static_cast<T::TValueType> (1);
+template <typename T> constexpr auto One() {
+    return static_cast<T::TValueType>(1);
 }
 
-template <typename T> constexpr auto Zero () {
-    return static_cast<T::TValueType> (0);
+template <typename T> constexpr auto Zero() {
+    return static_cast<T::TValueType>(0);
 }
 
 //=============================================================================
@@ -192,55 +192,52 @@ template <typename T> constexpr auto Zero () {
 //=============================================================================
 
 template <typename TLeft, typename TRight, typename TExpression = typename CommonExpression2<TLeft, TRight>::Type>
-TExpression operator+ (TLeft&& left, TRight&& right) {
+TExpression operator+(TLeft&& left, TRight&& right) {
     if constexpr (!IsExpression<TLeft>::value) {
-        return TExpression (left + right.value (), right.gradient ());
+        return TExpression(left + right.value(), right.gradient());
     } else if constexpr (!IsExpression<TRight>::value) {
-        return TExpression (right + left.value (), left.gradient ());
+        return TExpression(right + left.value(), left.gradient());
     } else {
-        return TExpression (left.value () + right.value (),
-                            left.gradient () + right.gradient ());
+        return TExpression(left.value() + right.value(), left.gradient() + right.gradient());
     }
 }
 
 template <typename TLeft, typename TRight, typename TExpression = typename CommonExpression2<TLeft, TRight>::Type>
-TExpression operator- (TLeft&& left, TRight&& right) {
+TExpression operator-(TLeft&& left, TRight&& right) {
     if constexpr (!IsExpression<TLeft>::value) {
-        return TExpression (left - right.value (), right.gradient ());
+        return TExpression(left - right.value(), right.gradient());
     } else if constexpr (!IsExpression<TRight>::value) {
-        return TExpression (right - left.value (), left.gradient ());
+        return TExpression(right - left.value(), left.gradient());
     } else {
-        return TExpression (left.value () - right.value (),
-                            left.gradient () - right.gradient ());
+        return TExpression(left.value() - right.value(), left.gradient() - right.gradient());
     }
 }
 
 template <typename TLeft, typename TRight, typename TExpression = typename CommonExpression2<TLeft, TRight>::Type>
-TExpression operator* (TLeft&& left, TRight&& right) {
+TExpression operator*(TLeft&& left, TRight&& right) {
     if constexpr (!IsExpression<TLeft>::value) {
-        return TExpression (left * right.value (), left * right.gradient ());
+        return TExpression(left * right.value(), left * right.gradient());
     } else if constexpr (!IsExpression<TRight>::value) {
-        return TExpression (left.value () * right, left.gradient () * right);
+        return TExpression(left.value() * right, left.gradient() * right);
     } else {
-        return TExpression (left.value () * right.value (),
-                            left.gradient () * right.value () +
-                            left.value () * right.gradient ());
+        return TExpression(left.value() * right.value(),
+                           left.gradient() * right.value() +
+                           left.value() * right.gradient());
     }
 }
 
 template <typename TLeft, typename TRight, typename TExpression = typename CommonExpression2<TLeft, TRight>::Type>
-TExpression operator/ (TLeft&& left, TRight&& right) {
+TExpression operator/(TLeft&& left, TRight&& right) {
     if constexpr (!IsExpression<TLeft>::value) {
-        return TExpression (left / right.value (),
-                            -(left * right.gradient ()) /
-                            (right.value () * right.value ()));
+        return TExpression(left / right.value(),
+                           -(left * right.gradient()) / (right.value() * right.value()));
     } else if constexpr (!IsExpression<TRight>::value) {
-        return TExpression (left.value () / right, left.gradient () / right);
+        return TExpression(left.value() / right, left.gradient() / right);
     } else {
-        return TExpression (left.value () / right.value (),
-                            (left.gradient () * right.value () -
-                             left.value () * right.gradient ()) /
-                            (right.value () * right.value ()));
+        return TExpression(left.value() / right.value(),
+                           (left.gradient() * right.value() -
+                            left.value() * right.gradient()) /
+                           (right.value() * right.value()));
     }
 }
 
@@ -267,108 +264,106 @@ using std::tan;
 using std::tanh;
 
 template <size_t TExp, typename T, typename TExpression = CommonExpression<T>::Type>
-TExpression pow (T&& base) {
-    auto newValue = pow<TExp> (base.value ());
-    auto mult     = TExp * pow<TExp - 1> (base.value ());
-    return TExpression (newValue, base.gradient () * mult);
+TExpression pow(T&& base) {
+    auto newValue = pow<TExp>(base.value());
+    auto mult     = TExp * pow<TExp - 1>(base.value());
+    return TExpression(newValue, base.gradient() * mult);
 }
 
 template <typename T, typename TExpression = CommonExpression<T>::Type>
-TExpression abs (T&& expr) {
-    auto mult = static_cast<ExpressionInfo<TExpression>::Type> (expr.value ()) >=
-    static_cast<ExpressionInfo<TExpression>::Type> (0) ?
-    One<TExpression> () :
-    -One<TExpression> ();
-    return TExpression (abs (expr.value ()), expr.gradient () * mult);
+TExpression abs(T&& expr) {
+    auto mult = static_cast<ExpressionInfo<TExpression>::Type>(expr.value()) >=
+    static_cast<ExpressionInfo<TExpression>::Type>(0) ?
+    One<TExpression>() :
+    -One<TExpression>();
+    return TExpression(abs(expr.value()), expr.gradient() * mult);
 }
 
 template <typename T, typename TExpression = CommonExpression<T>::Type>
-TExpression acos (T&& expr) {
-    auto mult =
-    -One<TExpression> () / sqrt (One<TExpression> () - pow<2> (expr.value ()));
-    return TExpression (acos (expr.value ()), expr.gradient () * mult);
+TExpression acos(T&& expr) {
+    auto mult = -One<TExpression>() / sqrt(One<TExpression>() - pow<2>(expr.value()));
+    return TExpression(acos(expr.value()), expr.gradient() * mult);
 }
 
 template <typename T, typename TExpression = CommonExpression<T>::Type>
-TExpression asin (T&& expr) {
-    auto mult =
-    One<TExpression> () / sqrt (One<TExpression> () - pow<2> (expr.value ()));
-    return TExpression (asin (expr.value ()), expr.gradient () * mult);
+TExpression asin(T&& expr) {
+    auto mult = One<TExpression>() / sqrt(One<TExpression>() - pow<2>(expr.value()));
+    return TExpression(asin(expr.value()), expr.gradient() * mult);
 }
 
 template <typename T, typename TExpression = CommonExpression<T>::Type>
-TExpression atan (T&& expr) {
-    auto mult = One<TExpression> () / (One<TExpression> () + pow<2> (expr.value ()));
-    return TExpression (atan (expr.value ()), expr.gradient () * mult);
+TExpression atan(T&& expr) {
+    auto mult = One<TExpression>() / (One<TExpression>() + pow<2>(expr.value()));
+    return TExpression(atan(expr.value()), expr.gradient() * mult);
 }
 
 template <typename T, typename TExpression = CommonExpression<T>::Type>
-TExpression cos (T&& expr) {
-    return TExpression (cos (expr.value ()), -expr.gradient () * sin (expr.value ()));
+TExpression cos(T&& expr) {
+    return TExpression(cos(expr.value()), -expr.gradient() * sin(expr.value()));
 }
 
 template <typename T, typename TExpression = CommonExpression<T>::Type>
-TExpression cosh (T&& expr) {
-    return TExpression (cosh (expr.value ()), expr.gradient () * sinh (expr.value ()));
+TExpression cosh(T&& expr) {
+    return TExpression(cosh(expr.value()), expr.gradient() * sinh(expr.value()));
 }
 
 template <typename T, typename TExpression = CommonExpression<T>::Type>
-TExpression erf (T&& expr) {
+TExpression erf(T&& expr) {
     constexpr typename ExpressionInfo<TExpression>::Type TwoDivSqrtPi =
     2.0 / 1.7724538509055160272981674833411451872554456638435;
-    return TExpression (erf (expr.value ()),
-                        expr.gradient () * TwoDivSqrtPi * exp (-pow<2> (expr.value ())));
+    return TExpression(erf(expr.value()),
+                       expr.gradient() * TwoDivSqrtPi * exp(-pow<2>(expr.value())));
 }
 
 template <typename T, typename TExpression = CommonExpression<T>::Type>
-TExpression exp (T&& expr) {
-    auto newValue = exp (expr.value ());
-    return TExpression (newValue, expr.gradient () * newValue);
+TExpression exp(T&& expr) {
+    auto newValue = exp(expr.value());
+    return TExpression(newValue, expr.gradient() * newValue);
 }
 
 template <typename T, typename TExpression = CommonExpression<T>::Type>
-TExpression log (T&& expr) {
-    auto mult = One<TExpression> () / expr.value ();
-    return TExpression (log (expr.value ()), expr.gradient () * mult);
+TExpression log(T&& expr) {
+    auto mult = One<TExpression>() / expr.value();
+    return TExpression(log(expr.value()), expr.gradient() * mult);
 }
 
 template <typename T, typename TExpression = CommonExpression<T>::Type>
-TExpression log10 (T&& expr) {
+TExpression log10(T&& expr) {
     constexpr typename ExpressionInfo<TExpression>::Type ln10 = 2.3025850929940456840179914546843;
-    auto mult = One<TExpression> () / (expr.value () * ln10);
-    return TExpression (log10 (expr.value ()), expr.gradient () * mult);
+    auto mult = One<TExpression>() / (expr.value() * ln10);
+    return TExpression(log10(expr.value()), expr.gradient() * mult);
 }
 
 template <typename T, typename TExpression = CommonExpression<T>::Type>
-TExpression sin (T&& expr) {
-    return TExpression (sin (expr.value ()), expr.gradient () * cos (expr.value ()));
+TExpression sin(T&& expr) {
+    return TExpression(sin(expr.value()), expr.gradient() * cos(expr.value()));
 }
 
 template <typename T, typename TExpression = CommonExpression<T>::Type>
-TExpression sinh (T&& expr) {
-    return TExpression (sinh (expr.value ()), expr.gradient () * cosh (expr.value ()));
+TExpression sinh(T&& expr) {
+    return TExpression(sinh(expr.value()), expr.gradient() * cosh(expr.value()));
 }
 
 template <typename T, typename TExpression = CommonExpression<T>::Type>
-TExpression sqrt (T&& expr) {
-    auto newValue = sqrt (expr.value ());
-    return TExpression (newValue,
-                        expr.gradient () *
-                        (typename ExpressionInfo<TExpression>::Type (0.5) / newValue));
+TExpression sqrt(T&& expr) {
+    auto newValue = sqrt(expr.value());
+    return TExpression(newValue,
+                       expr.gradient() *
+                       (typename ExpressionInfo<TExpression>::Type(0.5) / newValue));
 }
 
 template <typename T, typename TExpression = CommonExpression<T>::Type>
-TExpression tan (T&& expr) {
-    auto cosValue = cos (expr.value ());
-    auto mult     = One<TExpression> () / pow<2> (cosValue);
-    return TExpression (tan (expr.value ()), expr.gradient () * mult);
+TExpression tan(T&& expr) {
+    auto cosValue = cos(expr.value());
+    auto mult     = One<TExpression>() / pow<2>(cosValue);
+    return TExpression(tan(expr.value()), expr.gradient() * mult);
 }
 
 template <typename T, typename TExpression = CommonExpression<T>::Type>
-TExpression tanh (T&& expr) {
-    auto cosHValue = cosh (expr.value ());
-    auto mult      = One<TExpression> () / pow<2> (cosHValue);
-    return TExpression (tanh (expr.value ()), expr.gradient () * mult);
+TExpression tanh(T&& expr) {
+    auto cosHValue = cosh(expr.value());
+    auto mult      = One<TExpression>() / pow<2>(cosHValue);
+    return TExpression(tanh(expr.value()), expr.gradient() * mult);
 }
 
 //=============================================================================
@@ -380,36 +375,36 @@ using std::atan2;
 using std::pow;
 
 template <typename TBase, typename TExp, typename TExpression = CommonExpression2<TBase, TExp>::Type>
-TExpression pow (TBase&& base, TExp&& exp) {
+TExpression pow(TBase&& base, TExp&& exp) {
     if constexpr (!IsExpression<TExp>::value) {
-        auto newValue = pow (base.value (), exp - One<TExpression> ());
-        return TExpression (newValue * base.value (), exp * newValue * base.gradient ());
+        auto newValue = pow(base.value(), exp - One<TExpression>());
+        return TExpression(newValue * base.value(), exp * newValue * base.gradient());
     } else if constexpr (!IsExpression<TBase>::value) {
-        auto newValue = pow (base, exp.value ());
-        return TExpression (newValue, exp.gradient () * newValue * log (base));
+        auto newValue = pow(base, exp.value());
+        return TExpression(newValue, exp.gradient() * newValue * log(base));
     } else {
-        auto newValue = pow (base.value (), exp.value ());
-        return TExpression (newValue,
-                            newValue *
-                            (log (base.value ()) * exp.gradient () +
-                             exp.value () / base.value () * base.gradient ()));
+        auto newValue = pow(base.value(), exp.value());
+        return TExpression(newValue,
+                           newValue *
+                           (log(base.value()) * exp.gradient() +
+                            exp.value() / base.value() * base.gradient()));
     }
 }
 
 template <typename TNum, typename TDen, typename TExpression = CommonExpression2<TNum, TDen>::Type>
-TExpression atan2 (TNum&& num, TDen&& den) {
+TExpression atan2(TNum&& num, TDen&& den) {
     if constexpr (!IsExpression<TDen>::value) {
-        auto denom = pow<2> (den) + pow<2> (num.value ());
+        auto denom = pow<2>(den) + pow<2>(num.value());
         auto mult  = den / denom;
-        return TExpression (atan2 (num.value (), den), num.gradient () * mult);
+        return TExpression(atan2(num.value(), den), num.gradient() * mult);
     } else if constexpr (!IsExpression<TNum>::value) {
-        auto denom = pow<2> (den.value ()) + pow<2> (num);
+        auto denom = pow<2>(den.value()) + pow<2>(num);
         auto mult  = -num / denom;
-        return TExpression (atan2 (num, den.value ()), den.gradient () * mult);
+        return TExpression(atan2(num, den.value()), den.gradient() * mult);
     } else {
-        auto denom = pow<2> (den.value ()) + pow<2> (num.value ());
-        return TExpression (atan2 (num.value (), den.value ()),
-                            (den.value () * num.gradient () - num.value () * den.gradient ()) / denom);
+        auto denom = pow<2>(den.value()) + pow<2>(num.value());
+        return TExpression(atan2(num.value(), den.value()),
+                           (den.value() * num.gradient() - num.value() * den.gradient()) / denom);
     }
 }
 

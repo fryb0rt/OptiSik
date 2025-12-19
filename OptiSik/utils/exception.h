@@ -12,11 +12,11 @@ class computationError : public std::exception {
     std::string message;
 
     public:
-    computationError (const std::string& msg) : message (msg) {
+    computationError(const std::string& msg) : message(msg) {
     }
 
-    const char* what () const noexcept override {
-        return message.c_str ();
+    const char* what() const noexcept override {
+        return message.c_str();
     }
 };
 
