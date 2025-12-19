@@ -7,6 +7,7 @@
 #include <stdexcept>
 #include <vector>
 #include <array>
+#include "utils/traits.h"
 
 
 namespace OptiSik {
@@ -14,16 +15,44 @@ namespace OptiSik {
 template <typename T, typename TUnderlying = std::vector<T>> class Vector {
     TUnderlying mData;
 
+    template<typename TOther, typename TUnderlyingOther>
+    friend class Vector;
     public:
     explicit Vector () {
-        static_assert(mData.size() > 0, "The Vector() constructor can be used only for underlying types with implicit non-zero size.");
+        static_assert(!IsDynamicArray<T, TUnderlying>::value, "The Vector() constructor can be used only for underlying types with implicit non-zero size.");
+        emptyVectorCheck();
     }
     explicit Vector (const size_t n) : mData (n, T (0)) {
+        static_assert(IsDynamicArrayV<T, TUnderlying>, "The Vector (const size_t n) can be only used for underlying dynamic types.");
+        emptyVectorCheck();
     }
 
     explicit Vector (const TUnderlying& values) : mData (values) {
     }
 
+    Vector(const Vector& other):mData(other.mData) {}
+    
+    template<typename U>
+    explicit Vector(const Vector<T,U>& other):mData(init().mData) {
+        for (size_t i = 0; i < mData.size(); ++i) {
+            mData[i] = other.mData[i];
+        }
+    }
+
+    
+    Vector& operator=(const Vector & other) {
+        return operator=<TUnderlying>(other);
+    }
+
+    template<typename U>
+    Vector& operator=(const Vector<T,U> & other) {
+        checkSize(other);
+        for (size_t i = 0; i < mData.size(); ++i) {
+            mData[i] = other.mData[i];
+        }
+        return *this;
+    }
+    
     size_t dimension () const {
         return mData.size ();
     }
@@ -37,11 +66,9 @@ template <typename T, typename TUnderlying = std::vector<T>> class Vector {
 
     template<typename U>
     T dot (const Vector<T,U>& other) const {
-        if (dimension () != other.dimension ()) {
-            throw invalidArgument ("Dimension mismatch");
-        }
+        checkSize(other);
         T result = 0;
-        for (size_t i = 0; i < dimension (); ++i) {
+        for (size_t i = 0; i < mData.size(); ++i) {
             result += mData[i] * other.mData[i];
         }
         return result;
@@ -57,58 +84,48 @@ template <typename T, typename TUnderlying = std::vector<T>> class Vector {
 
     template<typename U>
     Vector operator+ (const Vector<T,U>& other) const {
-        if (dimension () != other.dimension ()) {
-            throw invalidArgument ("Dimension mismatch");
+        checkSize(other);
+        auto result = init();
+        for (size_t i = 0; i < mData.size(); ++i) {
+            result.mData[i] = mData[i] + other.mData[i];
         }
-        std::vector<T> result (dimension ());
-        for (size_t i = 0; i < dimension (); ++i) {
-            result[i] = mData[i] + other.mData[i];
-        }
-        return Vector (result);
+        return result;
     }
 
     template<typename U>
     Vector& operator+= (const Vector<T,U>& other) {
-        if (dimension () != other.dimension ()) {
-            throw invalidArgument ("Dimension mismatch");
-        }
-        for (size_t i = 0; i < dimension (); ++i) {
+        checkSize(other);
+        for (size_t i = 0; i < mData.size(); ++i) {
             mData[i] += other.mData[i];
         }
         return *this;
     }
 
     Vector operator* (const T scalar) const {
-        std::vector<T> result (dimension ());
-        for (size_t i = 0; i < dimension (); ++i) {
-            result[i] = mData[i] * scalar;
+        auto result = init();
+        for (size_t i = 0; i < mData.size(); ++i) {
+            result.mData[i] = mData[i] * scalar;
         }
-        return Vector (result);
+        return result;
     }
 
     Vector& operator*= (const T scalar) {
-        for (size_t i = 0; i < dimension (); ++i) {
+        for (size_t i = 0; i < mData.size(); ++i) {
             mData[i] *= scalar;
         }
         return *this;
     }
 
     Vector operator/ (const T scalar) const {
-        if (scalar == T (0)) {
-            throw invalidArgument ("Division by zero");
+        auto result = init();
+        for (size_t i = 0; i < mData.size(); ++i) {
+            result.mData[i] = mData[i] / scalar;
         }
-        std::vector<T> result (dimension ());
-        for (size_t i = 0; i < dimension (); ++i) {
-            result[i] = mData[i] / scalar;
-        }
-        return Vector (result);
+        return result;
     }
 
     Vector& operator/= (const T scalar) {
-        if (scalar == T (0)) {
-            throw invalidArgument ("Division by zero");
-        }
-        for (size_t i = 0; i < dimension (); ++i) {
+        for (size_t i = 0; i < mData.size(); ++i) {
             mData[i] /= scalar;
         }
         return *this;
@@ -116,39 +133,35 @@ template <typename T, typename TUnderlying = std::vector<T>> class Vector {
 
     template<typename U>
     Vector operator- (const Vector<T,U>& other) const {
-        if (dimension () != other.dimension ()) {
-            throw invalidArgument ("Dimension mismatch");
+        checkSize(other);
+        auto result = init();
+        for (size_t i = 0; i < mData.size(); ++i) {
+            result.mData[i] = mData[i] - other.mData[i];
         }
-        std::vector<T> result (dimension ());
-        for (size_t i = 0; i < dimension (); ++i) {
-            result[i] = mData[i] - other.mData[i];
-        }
-        return Vector (result);
+        return result;
     }
 
     template<typename U>
     Vector& operator-= (const Vector<T,U>& other) {
-        if (dimension () != other.dimension ()) {
-            throw invalidArgument ("Dimension mismatch");
-        }
-        for (size_t i = 0; i < dimension (); ++i) {
+        checkSize(other);
+        for (size_t i = 0; i < mData.size(); ++i) {
             mData[i] -= other.mData[i];
         }
         return *this;
     }
 
     Vector operator- () const {
-        std::vector<T> result (dimension ());
-        for (size_t i = 0; i < dimension (); ++i)
-            result[i] = -mData[i];
-        return Vector (result);
+        auto result = init();
+        for (size_t i = 0; i < mData.size(); ++i)
+            result.mData[i] = -mData[i];
+        return result;
     }
 
     template<typename U>
     bool operator== (const Vector<T,U>& other) const {
         if (dimension () != other.dimension ())
             return false;
-        for (size_t i = 0; i < dimension (); ++i)
+        for (size_t i = 0; i < mData.size(); ++i)
             if (mData[i] != other.mData[i])
                 return false;
         return true;
@@ -161,17 +174,11 @@ template <typename T, typename TUnderlying = std::vector<T>> class Vector {
 
     Vector normalized () const {
         T mag = magnitude ();
-        if (mag == T (0)) {
-            throw invalidArgument ("Cannot normalize zero-length vector");
-        }
         return (*this) / mag;
     }
 
     void normalize () {
         T mag = magnitude ();
-        if (mag == T (0)) {
-            throw invalidArgument ("Cannot normalize zero-length vector");
-        }
         (*this) /= mag;
     }
 
@@ -192,39 +199,47 @@ template <typename T, typename TUnderlying = std::vector<T>> class Vector {
         std::fill (mData.begin (), mData.end (), value);
     }
 
+    // This overload is needed otherwise calling min with the same Vector types could be ambiguous.
     friend Vector min (const Vector& a, const Vector& b) {
-        if (a.dimension () != b.dimension ())
-            throw invalidArgument ("Dimension mismatch");
-        std::vector<T> result (a.dimension ());
-        for (size_t i = 0; i < a.dimension (); ++i)
-            result[i] = std::min (a.mData[i], b.mData[i]);
-        return Vector (result);
+        return min<TUnderlying>(a,b);
     }
 
+    template<typename U>
+    friend Vector min (const Vector& a, const Vector<T,U>& b) {
+        a.checkSize(b);
+        auto result = a.init();
+        for (size_t i = 0; i < a.mData.size(); ++i)
+            result.mData[i] = std::min (a.mData[i], b.mData[i]);
+        return result;
+    }
+
+    // This overload is needed otherwise calling max with the same Vector types could be ambiguous.
     friend Vector max (const Vector& a, const Vector& b) {
-        if (a.dimension () != b.dimension ())
-            throw invalidArgument ("Dimension mismatch");
-        std::vector<T> result (a.dimension ());
-        for (size_t i = 0; i < a.dimension (); ++i)
-            result[i] = std::max (a.mData[i], b.mData[i]);
-        return Vector (result);
+        return max<TUnderlying>(a,b);
+    }
+
+    template<typename U>
+    friend Vector max (const Vector& a, const Vector<T,U>& b) {
+        a.checkSize(b);
+        auto result = a.init();
+        for (size_t i = 0; i < a.mData.size(); ++i)
+            result.mData[i] = std::max (a.mData[i], b.mData[i]);
+        return result;
     }
 
     T minElement () const {
-        if (dimension () == 0)
-            throw invalidArgument ("Empty vector");
+        emptyVectorCheck();
         T m = mData[0];
-        for (size_t i = 1; i < dimension (); ++i)
+        for (size_t i = 1; i < mData.size(); ++i)
             if (mData[i] < m)
                 m = mData[i];
         return m;
     }
 
     T maxElement () const {
-        if (dimension () == 0)
-            throw invalidArgument ("Empty vector");
+        emptyVectorCheck();
         T m = mData[0];
-        for (size_t i = 1; i < dimension (); ++i)
+        for (size_t i = 1; i < mData.size(); ++i)
             if (mData[i] > m)
                 m = mData[i];
         return m;
@@ -232,41 +247,37 @@ template <typename T, typename TUnderlying = std::vector<T>> class Vector {
 
     template<typename U>
     bool epsilonEquals (const Vector<T,U>& other, const T eps) const {
-        if (dimension () != other.dimension ())
-            return false;
+        checkSize(other);
         T sum = T (0);
-        for (size_t i = 0; i < dimension (); ++i)
+        for (size_t i = 0; i < mData.size(); ++i)
             sum += std::abs (mData[i] - other.mData[i]);
         return sum <= eps;
     }
 
     size_t minArg () const {
-        if (dimension () == 0)
-            throw invalidArgument ("Empty vector");
+        emptyVectorCheck();
         size_t idx = 0;
-        for (size_t i = 1; i < dimension (); ++i)
+        for (size_t i = 1; i < mData.size(); ++i)
             if (mData[i] < mData[idx])
                 idx = i;
         return idx;
     }
 
     size_t maxArg () const {
-        if (dimension () == 0)
-            throw invalidArgument ("Empty vector");
+        emptyVectorCheck();
         size_t idx = 0;
-        for (size_t i = 1; i < dimension (); ++i)
+        for (size_t i = 1; i < mData.size(); ++i)
             if (mData[i] > mData[idx])
                 idx = i;
         return idx;
     }
 
     T average () const {
-        if (dimension () == 0)
-            throw invalidArgument ("Empty vector");
+        emptyVectorCheck();
         T sum = T (0);
-        for (size_t i = 0; i < dimension (); ++i)
+        for (size_t i = 0; i < mData.size(); ++i)
             sum += mData[i];
-        return sum / static_cast<T> (dimension ());
+        return sum / static_cast<T> (mData.size());
     }
 
     friend Vector operator* (const T scalar, const Vector& v) {
@@ -275,13 +286,43 @@ template <typename T, typename TUnderlying = std::vector<T>> class Vector {
 
     friend std::ostream& operator<< (std::ostream& os, const Vector& v) {
         os << "[";
-        for (size_t i = 0; i < v.dimension (); ++i) {
+        for (size_t i = 0; i < v.mData.size(); ++i) {
             os << v.mData[i];
-            if (i + 1 < v.dimension ())
+            if (i + 1 < v.mData.size())
                 os << ", ";
         }
         os << "]";
         return os;
+    }
+
+private:
+    Vector init() const {
+        if constexpr(IsDynamicArrayV<T, TUnderlying>) {
+            return Vector(dimension());
+        } else {
+            return Vector();
+        }
+    }
+
+    template<typename U>
+    void checkSize(const Vector<T,U>& other) const {
+        if constexpr(IsDynamicArrayV<T, TUnderlying> || IsDynamicArrayV<T, U>) {
+            if (dimension () != other.dimension ()) {
+                throw invalidArgument ("Dimension mismatch");
+            }
+        } else {
+            static_assert(mData.size() == other.mData.size(), "Dimension mismatch");
+        }
+    }
+
+    void emptyVectorCheck() const {
+        if constexpr(IsDynamicArrayV<T, TUnderlying>) {
+            if (dimension () == 0) {
+                throw invalidArgument ("The Vector must have non-zero size");
+            }
+        } else {
+            static_assert(mData.size() > 0, "The Vector must have non-zero size");
+        }
     }
 };
 

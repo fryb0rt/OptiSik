@@ -55,3 +55,42 @@ TEST (VectorTest, EpsilonEquals) {
     EXPECT_TRUE (a.epsilonEquals (b, 0.01));
     EXPECT_FALSE (a.epsilonEquals (b, 0.0001));
 }
+
+TEST (VectorTest, DifferentTypes) {
+    Vector<double> a({1.0,2.0,3.0});
+    SVector<double, 3> b({1.0,2.0,3.0});
+
+    EXPECT_DOUBLE_EQ (a.dot (a), 14.0);
+    a = b * 2.0;
+    EXPECT_DOUBLE_EQ (a[0], 2.0);
+    a *= 0.5;
+    EXPECT_TRUE (a == b);
+
+    EXPECT_TRUE(a.epsilonEquals(b, 0.001));
+
+    EXPECT_EQ ((a + b), Vec (std::vector<double>{ 2.0, 4.0, 6.0 }));
+    a += SVector<double, 3>({1.0, 7.0, -2.0});
+    EXPECT_EQ ((a - b), Vec (std::vector<double>{ 1.0, 7.0, -2.0 }));
+    a -= b;
+    EXPECT_EQ (a, Vec (std::vector<double>{ 1.0, 7.0, -2.0 }));
+    EXPECT_EQ (2.0 * b, Vec (std::vector<double>{ 2.0, 4.0, 6.0 }));
+
+    EXPECT_EQ (min (a, b), Vec (std::vector<double>{ 1.0, 2.0, -2.0 }));
+    EXPECT_EQ (max (b, a), Vec (std::vector<double>{ 1.0, 7.0, 3.0 }));
+    EXPECT_DOUBLE_EQ (a.minElement (), -2.0);
+    EXPECT_DOUBLE_EQ (b.maxElement (), 3.0);
+    EXPECT_EQ (a.minArg (), 2u);
+    EXPECT_EQ (b.maxArg (), 2u);
+
+    SVector<double, 2> v ({ 3, 4 });
+    SVector<double, 2> n = v.normalized ();
+    EXPECT_NEAR (n.magnitude (), 1.0, 1e-8);
+    SVector<double, 4> z({ 1, 2, 3, 4 });
+    EXPECT_DOUBLE_EQ (z.average (), 2.5);
+    SVector<double, 4> f;
+    f.fill (7.0);
+    double s = 0;
+    for (auto& x : f)
+        s += x;
+    EXPECT_DOUBLE_EQ (s, 28.0);
+}
