@@ -135,10 +135,86 @@ void hessianRow(THessian& hessian, TFunctor&& functor, TArgs&... args) {
 template <typename TFunctor, typename... TArgs>
 auto hessian(TFunctor&& functor, TArgs&... args) {
     constexpr size_t N = sizeof...(TArgs);
-    using ExprType = std::decay_t<decltype(functor(args...))>;
-    using T = ExpressionInfo<ExprType>::Type;
+    using ExprType     = std::decay_t<decltype(functor(args...))>;
+    using T            = ExpressionInfo<ExprType>::Type;
     SMatrix<T, N, N> result;
     hessianRow<0>(result, functor, args...);
+    return result;
+}
+
+namespace {
+template <size_t TFunctionIndex, typename... TFunctors>
+class FunctionsInternal {};
+
+template <size_t TFunctionIndex, typename TFunctor, typename... TFunctors>
+class FunctionsInternal<TFunctionIndex, TFunctor, TFunctors...> {
+    FunctionsInternal<TFunctionIndex + 1, TFunctors...> mNext;
+
+    const TFunctor& mFunctor;
+
+public:
+    FunctionsInternal(const TFunctor& functor, const TFunctors&... functors)
+    : mFunctor(functor), mNext(functors...) {
+    }
+
+    template <size_t TIndex, typename... TArgs>
+    auto compute(TArgs&&... args) const {
+        if constexpr (TIndex == TFunctionIndex) {
+            return mFunctor(std::forward<TArgs>(args)...);
+        } else {
+            return mNext.template compute<TIndex>(std::forward<TArgs>(args)...);
+        }
+    }
+};
+
+} // namespace
+
+template <typename... TFunctors>
+class Functions {
+private:
+    FunctionsInternal<0, TFunctors...> mImpl;
+
+public:
+    Functions(const TFunctors&... functors) : mImpl(functors...) {
+    }
+
+    template <size_t TIndex, typename... TArgs>
+    auto compute(TArgs&&... args) const {
+        return mImpl.template compute<TIndex>(std::forward<TArgs>(args)...);
+    }
+};
+
+namespace {
+template <size_t TRowIndex, size_t TColumnIndex, typename TJacobian, typename... TFunctors, typename... TArgs>
+void jacobianColumn(TJacobian& jacobian, const Functions<TFunctors...>& functions, TArgs&... args) {
+    if constexpr (jacobian.cols() > TColumnIndex) {
+        {
+            // We use separate block to make sure wrt is destroyed before computing next item in the matrix
+            WithRespectTo wrt(*get<TColumnIndex>(args...));
+            auto d = functions.template compute<TRowIndex>(args...);
+            jacobian(TRowIndex, TColumnIndex) = getDerivative<1>(d);
+        }
+        jacobianColumn<TRowIndex, TColumnIndex + 1>(jacobian, functions, args...);
+    }
+}
+
+template <size_t TRowIndex, typename TJacobian, typename... TFunctors, typename... TArgs>
+void jacobianRow(TJacobian& jacobian, const Functions<TFunctors...>& functions, TArgs&... args) {
+    if constexpr (jacobian.rows() > TRowIndex) {
+        jacobianColumn<TRowIndex, 0>(jacobian, functions, args...);
+        jacobianRow<TRowIndex + 1>(jacobian, functions, args...);
+    }
+}
+} // namespace
+
+template <typename... TFunctors, typename... TArgs>
+auto jacobian(const Functions<TFunctors...>& functions, TArgs&... args) {
+    constexpr size_t cols = sizeof...(TArgs);
+    constexpr size_t rows = sizeof...(TFunctors);
+    using ExprType = std::decay_t<decltype(functions.template compute<0>(args...))>;
+    using T = ExpressionInfo<ExprType>::Type;
+    SMatrix<T, rows, cols> result;
+    jacobianRow<0>(result, functions, args...);
     return result;
 }
 

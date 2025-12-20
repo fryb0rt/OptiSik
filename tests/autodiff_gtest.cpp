@@ -394,3 +394,25 @@ TEST(AutoDiff, Hessian3) {
     SMatrix<double, 3, 3> result = hessian(func, a, b, c);
     EXPECT_TRUE(result == test);
 }
+
+TEST(AutoDiff, Jacobian) {
+    using Exp3       = Expression3<double>;
+    Exp3 a           = 3.0;
+    Exp3 b           = 4.0;
+    Exp3 c           = 5.0;
+    const auto func1 = [](Exp3 a, Exp3 b, Exp3 c) {
+        return abs(sin(a + exp(b)) * log(c) + pow(a, b) * atan2(b, c) / sinh(a));
+    };
+    const auto func2 = [](Exp3 a, Exp3 b, Exp3 c) {
+        return a * a + pow<8>(b) + abs(c);
+    };
+    SMatrix<double, 2, 3> test;
+    test(0, 0) = getDerivative<1>(computeDerivative(func1, WithRespectTo(a), a, b, c));
+    test(0, 1) = getDerivative<1>(computeDerivative(func1, WithRespectTo(b), a, b, c));
+    test(0, 2) = getDerivative<1>(computeDerivative(func1, WithRespectTo(c), a, b, c));
+    test(1, 0) = getDerivative<1>(computeDerivative(func2, WithRespectTo(a), a, b, c));
+    test(1, 1) = getDerivative<1>(computeDerivative(func2, WithRespectTo(b), a, b, c));
+    test(1, 2) = getDerivative<1>(computeDerivative(func2, WithRespectTo(c), a, b, c));
+    SMatrix<double, 2, 3> result = jacobian(Functions(func1, func2), a, b, c);
+    EXPECT_TRUE(result == test);
+}
