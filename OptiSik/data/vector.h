@@ -20,17 +20,18 @@ class Vector {
     friend class Vector;
 
 public:
-    using Type           = T;
-    using UnderlyingType = TUnderlying;
+    using Type                      = T;
+    using UnderlyingType            = TUnderlying;
+    static constexpr bool isDynamic = IsDynamicArrayV<T, TUnderlying>;
 
     explicit Vector() {
-        static_assert(!IsDynamicArray<T, TUnderlying>::value,
+        static_assert(!isDynamic,
                       "The Vector() constructor can be used only for "
                       "underlying types with implicit non-zero size.");
         checkSizeNonZero();
     }
     explicit Vector(const size_t n) : mData(n, T(0)) {
-        static_assert(IsDynamicArrayV<T, TUnderlying>,
+        static_assert(isDynamic,
                       "The Vector (const size_t n) can be only used for "
                       "underlying dynamic types.");
         checkSizeNonZero();
@@ -307,7 +308,7 @@ public:
 
 private:
     Vector init() const {
-        if constexpr (IsDynamicArrayV<T, TUnderlying>) {
+        if constexpr (isDynamic) {
             return Vector(dimension());
         } else {
             return Vector();
@@ -315,7 +316,7 @@ private:
     }
 
     TUnderlying init(const size_t size) const {
-        if constexpr (IsDynamicArrayV<T, TUnderlying>) {
+        if constexpr (isDynamic) {
             return TUnderlying(size);
         } else {
             if (dimension() != size) {
@@ -327,7 +328,7 @@ private:
 
     template <typename U>
     void checkSizeEqual(const Vector<T, U>& other) const {
-        if constexpr (IsDynamicArrayV<T, TUnderlying> || IsDynamicArrayV<T, U>) {
+        if constexpr (isDynamic || Vector<T, U>::isDynamic) {
             if (dimension() != other.dimension()) {
                 throw invalidArgument("Dimension mismatch");
             }
@@ -337,7 +338,7 @@ private:
     }
 
     void checkSizeNonZero() const {
-        if constexpr (IsDynamicArrayV<T, TUnderlying>) {
+        if constexpr (isDynamic) {
             if (dimension() == 0) {
                 throw invalidArgument("The Vector must have non-zero size");
             }

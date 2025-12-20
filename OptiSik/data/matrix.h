@@ -12,7 +12,7 @@ namespace OptiSik {
 
 template <typename TVector,
           typename TUnderlying = std::vector<TVector>,
-          typename = std::enable_if_t<IsDynamicArrayV<typename TVector::Type, typename TVector::UnderlyingType> == IsDynamicArrayV<TVector, TUnderlying>>>
+          typename = std::enable_if_t<TVector::isDynamic == IsDynamicArrayV<TVector, TUnderlying>>>
 class Matrix {
     TUnderlying mData;
 
@@ -20,18 +20,20 @@ class Matrix {
     friend class Matrix;
 
 public:
-    using Type    = typename TVector::Type;
-    using RowType = TVector;
+    using Type                      = typename TVector::Type;
+    using RowType                   = TVector;
+    using UnderlyingType            = TUnderlying;
+    static constexpr bool isDynamic = IsDynamicArrayV<TVector, TUnderlying>;
 
     explicit Matrix() {
-        static_assert(!IsDynamicArray<TVector, TUnderlying>::value,
+        static_assert(!isDynamic,
                       "The Matrix() constructor can be used only for "
                       "underlying types with implicit non-zero size.");
         checkSizeNonZero();
     }
     explicit Matrix(const size_t rows, const size_t cols)
     : mData(rows, TVector(cols)) {
-        static_assert(IsDynamicArrayV<TVector, TUnderlying>,
+        static_assert(isDynamic,
                       "The Matrix (rows, cols) can be only used for "
                       "underlying dynamic types.");
         checkSizeNonZero();
@@ -140,8 +142,7 @@ public:
 
     template <typename U1, typename U2>
     auto operator*(const Matrix<Vector<Type, U1>, U2>& other) const {
-        if constexpr (IsDynamicArrayV<TVector, TUnderlying> ||
-                      IsDynamicArrayV<Vector<Type, U1>, U2>) {
+        if constexpr (isDynamic || Matrix<Vector<Type, U1>, U2>::isDynamic) {
             if (cols() != other.rows()) {
                 throw invalidArgument("Dimension mismatch");
             }
@@ -159,7 +160,7 @@ public:
 
     template <typename U1>
     auto operator*(const Vector<Type, U1>& v) const {
-        if constexpr (IsDynamicArrayV<Type, TVector> || IsDynamicArrayV<Type, U1>) {
+        if constexpr (isDynamic || Vector<Type, U1>::isDynamic) {
             if (cols() != v.dimension()) {
                 throw invalidArgument("Dimension mismatch");
             }
@@ -175,7 +176,7 @@ public:
     }
 
     auto transpose() const {
-        if constexpr (IsDynamicArrayV<TVector, TUnderlying>) {
+        if constexpr (isDynamic) {
             Matrix<Vector<Type>> result(cols(), rows()); // Dynamic
             doMatrixTranspose(result);
             return result;
@@ -277,7 +278,7 @@ public:
 
 private:
     Matrix init() const {
-        if constexpr (IsDynamicArrayV<TVector, TUnderlying>) {
+        if constexpr (isDynamic) {
             return Matrix(rows(), cols());
         } else {
             return Matrix();
@@ -285,7 +286,7 @@ private:
     }
 
     TUnderlying init(const size_t rows, const size_t cols) const {
-        if constexpr (IsDynamicArrayV<TVector, TUnderlying>) {
+        if constexpr (isDynamic) {
             return TUnderlying(rows, TVector(cols));
         } else {
             if (this->rows() != rows || this->cols() != cols) {
@@ -297,8 +298,7 @@ private:
 
     template <typename U1, typename U2>
     void checkSizeEqual(const Matrix<Vector<Type, U1>, U2>& other) const {
-        if constexpr (IsDynamicArrayV<TVector, TUnderlying> ||
-                      IsDynamicArrayV<Vector<Type, U1>, U2>) {
+        if constexpr (isDynamic || Matrix<Vector<Type, U1>, U2>::isDynamic) {
             if (rows() != other.rows() || cols() != other.cols()) {
                 throw invalidArgument("Dimension mismatch");
             }
@@ -308,7 +308,7 @@ private:
     }
 
     void checkSizeNonZero() const {
-        if constexpr (IsDynamicArrayV<TVector, TUnderlying>) {
+        if constexpr (isDynamic) {
             if (rows() == 0 || cols() == 0) {
                 throw invalidArgument("The Matrix must have non-zero size");
             }
@@ -318,7 +318,7 @@ private:
     }
 
     void checkSizeSquare() const {
-        if constexpr (IsDynamicArrayV<TVector, TUnderlying>) {
+        if constexpr (isDynamic) {
             if (rows() != cols()) {
                 throw invalidArgument("The Matrix must be square");
             }
