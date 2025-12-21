@@ -42,10 +42,12 @@ class WithRespectToInternal<TGradientIndex, TExpression, TArgs...> {
 public:
     WithRespectToInternal(TExpression&& e, TArgs&&... args)
     : mExpr(std::forward<TExpression>(e)), mNext(std::forward<TArgs>(args)...) {
-        setGradient<TGradientIndex>(mExpr, typename ExpressionInfo<std::decay_t<TExpression>>::Type(1));
+        setGradient<TGradientIndex>(
+        mExpr, typename ExpressionInfo<std::decay_t<TExpression>>::Type(1));
     }
     ~WithRespectToInternal() {
-        setGradient<TGradientIndex>(mExpr, typename ExpressionInfo<std::decay_t<TExpression>>::Type(0));
+        setGradient<TGradientIndex>(
+        mExpr, typename ExpressionInfo<std::decay_t<TExpression>>::Type(0));
     }
 
 private:
@@ -59,12 +61,11 @@ private:
     WithRespectToInternal<1, TArgs...> mImpl;
 
 public:
-
     WithRespectTo(TArgs&&... args) : mImpl(std::forward<TArgs>(args)...) {
     }
 };
 
-template<typename... TArgs>
+template <typename... TArgs>
 auto withRespectTo(TArgs&&... args) {
     return WithRespectTo<TArgs&&...>(std::forward<TArgs>(args)...);
 }
@@ -115,11 +116,13 @@ void hessianColumn(THessian& hessian, TFunctor&& functor, TArgs&&... args) {
     if constexpr (hessian.cols() > TColumnIndex) {
         {
             // We use separate block to make sure wrt is destroyed before computing next item in the matrix
-            auto wrt = withRespectTo(get<TRowIndex>(std::forward<TArgs>(args)...), get<TColumnIndex>(std::forward<TArgs>(args)...));
+            auto wrt = withRespectTo(get<TRowIndex>(std::forward<TArgs>(args)...),
+                                     get<TColumnIndex>(std::forward<TArgs>(args)...));
             auto d = computeDerivative(functor, wrt, std::forward<TArgs>(args)...);
             hessian(TRowIndex, TColumnIndex) = getDerivative<2>(d);
         }
-        hessianColumn<TRowIndex, TColumnIndex + 1>(hessian, functor, std::forward<TArgs>(args)...);
+        hessianColumn<TRowIndex, TColumnIndex + 1>(hessian, functor,
+                                                   std::forward<TArgs>(args)...);
     }
 }
 
@@ -135,10 +138,27 @@ void hessianRow(THessian& hessian, TFunctor&& functor, TArgs&&... args) {
 template <typename TFunctor, typename... TArgs>
 auto hessian(TFunctor&& functor, TArgs&&... args) {
     constexpr size_t N = sizeof...(TArgs);
-    using ExprType     = std::decay_t<decltype(functor(std::forward<TArgs>(args)...))>;
-    using T            = ExpressionInfo<ExprType>::Type;
+    using ExprType = std::decay_t<decltype(functor(std::forward<TArgs>(args)...))>;
+    using T = ExpressionInfo<ExprType>::Type;
     SMatrix<T, N, N> result;
     hessianRow<0>(result, functor, std::forward<TArgs>(args)...);
+    return result;
+}
+
+template <typename TFunctor, typename TVector>
+auto hessian(TFunctor&& functor, TVector&& vector) {
+    constexpr size_t N = vectorSize<std::decay_t<TVector>>;
+    using ExprType = std::decay_t<decltype(functor(std::forward<TVector>(vector)))>;
+    using T = ExpressionInfo<ExprType>::Type;
+    SMatrix<T, N, N> result;
+    for (size_t r = 0; r < N; ++r) {
+        for (size_t c = 0; c < N; ++c) {
+            using VectorType = typename std::decay_t<TVector>::Type;
+            auto wrt = withRespectTo(std::forward<VectorType>(vector[r]), std::forward<VectorType>(vector[c]));
+            auto d = computeDerivative(functor, wrt, std::forward<TVector>(vector));
+            result(r, c) = getDerivative<2>(d);
+        }
+    }
     return result;
 }
 
@@ -194,7 +214,8 @@ void jacobianColumn(TJacobian& jacobian, const Functions<TFunctors...>& function
             auto d = functions.template compute<TRowIndex>(std::forward<TArgs>(args)...);
             jacobian(TRowIndex, TColumnIndex) = getDerivative<1>(d);
         }
-        jacobianColumn<TRowIndex, TColumnIndex + 1>(jacobian, functions, std::forward<TArgs>(args)...);
+        jacobianColumn<TRowIndex, TColumnIndex + 1>(jacobian, functions,
+                                                    std::forward<TArgs>(args)...);
     }
 }
 
@@ -205,16 +226,44 @@ void jacobianRow(TJacobian& jacobian, const Functions<TFunctors...>& functions, 
         jacobianRow<TRowIndex + 1>(jacobian, functions, std::forward<TArgs>(args)...);
     }
 }
+
+template <size_t TRowIndex, typename TJacobian, typename... TFunctors, typename TVector>
+void jacobianRowVector(TJacobian& jacobian,
+                       const Functions<TFunctors...>& functions,
+                       TVector&& vector) {
+    if constexpr (jacobian.rows() > TRowIndex) {
+        for (size_t c = 0; c < jacobian.cols(); ++c) {
+            auto wrt = withRespectTo(
+            std::forward<typename std::decay_t<TVector>::Type>(vector[c]));
+            auto d = functions.template compute<TRowIndex>(std::forward<TVector>(vector));
+            jacobian(TRowIndex, c) = getDerivative<1>(d);
+        }
+        jacobianRowVector<TRowIndex + 1>(jacobian, functions, std::forward<TVector>(vector));
+    }
+}
 } // namespace
 
 template <typename... TFunctors, typename... TArgs>
 auto jacobian(const Functions<TFunctors...>& functions, TArgs&&... args) {
     constexpr size_t cols = sizeof...(TArgs);
     constexpr size_t rows = sizeof...(TFunctors);
-    using ExprType = std::decay_t<decltype(functions.template compute<0>(std::forward<TArgs>(args)...))>;
+    using ExprType =
+    std::decay_t<decltype(functions.template compute<0>(std::forward<TArgs>(args)...))>;
     using T = ExpressionInfo<ExprType>::Type;
     SMatrix<T, rows, cols> result;
     jacobianRow<0>(result, functions, std::forward<TArgs>(args)...);
+    return result;
+}
+
+template <typename... TFunctors, typename TVector>
+auto jacobian(const Functions<TFunctors...>& functions, TVector&& vector) {
+    constexpr size_t cols = vectorSize<std::decay_t<TVector>>;
+    constexpr size_t rows = sizeof...(TFunctors);
+    using ExprType =
+    std::decay_t<decltype(functions.template compute<0>(std::forward<TVector>(vector)))>;
+    using T = ExpressionInfo<ExprType>::Type;
+    SMatrix<T, rows, cols> result;
+    jacobianRowVector<0>(result, functions, std::forward<TVector>(vector));
     return result;
 }
 
@@ -222,5 +271,15 @@ template <typename TFunctor, typename... TArgs>
 auto gradient(TFunctor&& functor, TArgs&&... args) {
     return jacobian(Functions(functor), std::forward<TArgs>(args)...)[0];
 }
+
+// template <typename TFunctor, typename TVector>
+// auto gradient(TFunctor&& functor, TVector&& vector) {
+//     struct NewFunctor
+//     return apply(
+//     [&functor](auto&&... args) {
+//         return jacobian(Functions(functor), std::forward<TArgs>(args)...)[0];
+//     },
+//     std::forward<TFunctor>(vector))
+// }
 
 } // namespace OptiSik

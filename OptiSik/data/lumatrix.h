@@ -15,7 +15,7 @@ struct PermutationType {
 
 template<typename TMatrix>
 struct PermutationType<TMatrix, false> {
-    using Type = std::array<size_t, std::tuple_size_v<typename TMatrix::UnderlyingType>>;
+    using Type = std::array<size_t, matrixRows<TMatrix>>;
 };
 
 } // namespace

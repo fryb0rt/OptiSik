@@ -367,4 +367,7 @@ private:
 template <typename T, size_t ROWS, size_t COLS>
 using SMatrix = Matrix<SVector<T, COLS>, std::array<SVector<T, COLS>, ROWS>>;
 
+template <typename TMatrix, typename = std::enable_if_t<!TMatrix::isDynamic>>
+constexpr size_t matrixRows =  std::tuple_size_v<typename TMatrix::UnderlyingType>;
+
 } // namespace OptiSik

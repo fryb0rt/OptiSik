@@ -350,4 +350,7 @@ private:
 template <typename T, size_t N>
 using SVector = Vector<T, std::array<T, N>>;
 
+template <typename TVector, typename = std::enable_if_t<!TVector::isDynamic>>
+constexpr size_t vectorSize =  std::tuple_size_v<typename TVector::UnderlyingType>;
+
 } // namespace OptiSik
