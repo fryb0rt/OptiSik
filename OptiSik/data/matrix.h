@@ -80,6 +80,13 @@ public:
         return mData[i][j];
     }
 
+    RowType& operator[](const size_t i) {
+        return mData[i];
+    }
+    const RowType& operator[](const size_t i) const {
+        return mData[i];
+    }
+
     template <typename U1, typename U2>
     bool operator==(const Matrix<Vector<Type, U1>, U2>& other) const {
         if (rows() != other.rows() || cols() != other.cols())

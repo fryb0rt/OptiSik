@@ -26,17 +26,15 @@ public:
         }
     };
 
-    using Function = std::function<T(const TVector&)>;
-    using Gradient = std::function<TVector(const TVector&)>;
-
     /// Minimize f(x) using gradient descent
     /// @param x0 Initial point
     /// @param objectiveFunc Function to minimize
     /// @param gradientFunc Gradient of the objective function
     /// @param config Configuration parameters
+    template<typename TFunction, typename TGradient>
     static Result minimize(const TVector& x0,
-                           const Function& objectiveFunc,
-                           const Gradient& gradientFunc,
+                           const TFunction& objectiveFunc,
+                           const TGradient& gradientFunc,
                            const Config& config = Config()) {
         TVector x = x0;
         for (size_t iter = 0; iter < config.maxIterations; ++iter) {

@@ -226,9 +226,9 @@ TExpression operator+(TLeft&& left, TRight&& right) {
 template <typename TLeft, typename TRight, typename TExpression = typename CommonExpression2<TLeft, TRight>::Type>
 TExpression operator-(TLeft&& left, TRight&& right) {
     if constexpr (!IsExpression<TLeft>::value) {
-        return TExpression(left - right.value(), right.gradient());
+        return TExpression(left - right.value(), -right.gradient());
     } else if constexpr (!IsExpression<TRight>::value) {
-        return TExpression(right - left.value(), left.gradient());
+        return TExpression(left.value() - right, left.gradient());
     } else {
         return TExpression(left.value() - right.value(), left.gradient() - right.gradient());
     }
