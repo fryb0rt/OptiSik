@@ -50,7 +50,6 @@ public:
         }
     }
 
-
     Vector& operator=(const Vector& other) {
         return operator= <TUnderlying>(other);
     }

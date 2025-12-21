@@ -6,6 +6,16 @@ using namespace OptiSik;
 using Vec = Vector<double>;
 using Mat = Matrix<Vec>;
 
+TEST(MatrixTest, List) {
+    Mat m1({Vec({1,2,3}), Vec({4,5,6})});
+    EXPECT_DOUBLE_EQ(m1(0,0), 1.0);
+    EXPECT_DOUBLE_EQ(m1(0,1), 2.0);
+    EXPECT_DOUBLE_EQ(m1(0,2), 3.0);
+    EXPECT_DOUBLE_EQ(m1(1,0), 4.0);
+    EXPECT_DOUBLE_EQ(m1(1,1), 5.0);
+    EXPECT_DOUBLE_EQ(m1(1,2), 6.0);
+}
+
 TEST(MatrixTest, BasicOps) {
     Mat m1(2, 3);
     m1(0, 0) = 1;

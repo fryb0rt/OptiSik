@@ -4,6 +4,13 @@
 using namespace OptiSik;
 using Vec = Vector<double>;
 
+TEST(VectorTest, List) {
+    Vec v1({1,2,3});
+    EXPECT_DOUBLE_EQ(v1[0], 1.0);
+    EXPECT_DOUBLE_EQ(v1[1], 2.0);
+    EXPECT_DOUBLE_EQ(v1[2], 3.0);
+}
+
 TEST(VectorTest, DotAndScalar) {
     Vec v1(std::vector<double>{ 1, 2, 3 });
     Vec v2(std::vector<double>{ 4, 5, 6 });
