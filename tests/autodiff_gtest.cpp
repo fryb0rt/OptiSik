@@ -491,3 +491,13 @@ TEST(AutoDiff, VectorGradient) {
     EXPECT_DOUBLE_EQ(result[1], 48.0);
     EXPECT_DOUBLE_EQ(result[2], 500.0);
 }
+
+TEST(AutoDiff, Gradient1) {
+    using Exp3      = Expression3<double>;
+    Exp3 a          = 3.0;
+    const auto func = [](Exp3 x) {
+        return x * x * x;
+    };
+    SVector<double, 1> result = gradient(func, a);
+    EXPECT_DOUBLE_EQ(result[0], 27.0);
+}

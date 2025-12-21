@@ -145,7 +145,7 @@ auto hessian(TFunctor&& functor, TArgs&&... args) {
     return result;
 }
 
-template <typename TFunctor, typename TVector>
+template <typename TFunctor, typename TVector, typename = std::enable_if_t<!std::decay_t<TVector>::isDynamic>>
 auto hessian(TFunctor&& functor, TVector&& vector) {
     constexpr size_t N = vectorSize<std::decay_t<TVector>>;
     using ExprType = std::decay_t<decltype(functor(std::forward<TVector>(vector)))>;
@@ -255,7 +255,7 @@ auto jacobian(const Functions<TFunctors...>& functions, TArgs&&... args) {
     return result;
 }
 
-template <typename... TFunctors, typename TVector>
+template <typename... TFunctors, typename TVector, typename = std::enable_if_t<!std::decay_t<TVector>::isDynamic>>
 auto jacobian(const Functions<TFunctors...>& functions, TVector&& vector) {
     constexpr size_t cols = vectorSize<std::decay_t<TVector>>;
     constexpr size_t rows = sizeof...(TFunctors);
@@ -271,15 +271,5 @@ template <typename TFunctor, typename... TArgs>
 auto gradient(TFunctor&& functor, TArgs&&... args) {
     return jacobian(Functions(functor), std::forward<TArgs>(args)...)[0];
 }
-
-// template <typename TFunctor, typename TVector>
-// auto gradient(TFunctor&& functor, TVector&& vector) {
-//     struct NewFunctor
-//     return apply(
-//     [&functor](auto&&... args) {
-//         return jacobian(Functions(functor), std::forward<TArgs>(args)...)[0];
-//     },
-//     std::forward<TFunctor>(vector))
-// }
 
 } // namespace OptiSik
