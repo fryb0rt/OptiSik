@@ -11,8 +11,11 @@ Decomposition of matrix in lower and upper triangle.
 Allows solving of linear equations, matrix inversion and determinant computation.
 
 3) Simple multi-dimensional gradient descent (optimizers/gradientDescent.h)
-Accepts function and its gradient as functors.
+Accepts function and its gradient as functors. Gradient can be computed automatically using auto-differentiation (see 4).
 
-3) GTests for all components - only these require compilation.
+4) Expression class that can be used for auto-differentiation. It handles higher-order derivatives.
+There are methods for computing gradient, Jacobian and Hessian matrix.
+
+5) GTests for all components - only these require compilation.
 
 The plan is to add more features in the near future.
