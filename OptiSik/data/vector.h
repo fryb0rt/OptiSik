@@ -43,10 +43,10 @@ public:
     Vector(const Vector& other) : mData(other.mData) {
     }
 
-    template <typename U>
-    Vector(const Vector<T, U>& other) : mData(init(other.dimension())) {
+    template <typename T2, typename U>
+    Vector(const Vector<T2, U>& other) : mData(init(other.dimension())) {
         for (size_t i = 0; i < dimension(); ++i) {
-            mData[i] = other.mData[i];
+            mData[i] = static_cast<T>(other.mData[i]);
         }
     }
 
