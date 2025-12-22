@@ -351,15 +351,15 @@ template <typename T, size_t N>
 using SVector = Vector<T, std::array<T, N>>;
 
 template <typename TVector, typename = std::enable_if_t<!TVector::isDynamic>>
-constexpr size_t vectorSize =  std::tuple_size_v<typename TVector::UnderlyingType>;
+constexpr size_t vectorSize = std::tuple_size_v<typename TVector::UnderlyingType>;
 
-template <typename T, typename U>
+template <typename T>
 struct IsVector {
     static constexpr bool value = false;
 };
 
 template <typename T, typename U>
-struct IsVector<T, Vector<T, U>> {
+struct IsVector<Vector<T, U>> {
     static constexpr bool value = true;
 };
 

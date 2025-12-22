@@ -3,7 +3,6 @@
 #include "data/matrix.h"
 #include "data/vector.h"
 
-
 namespace OptiSik {
 
 namespace {
@@ -145,16 +144,24 @@ auto hessian(TFunctor&& functor, TArgs&&... args) {
     return result;
 }
 
-template <typename TFunctor, typename TVector, typename = std::enable_if_t<!std::decay_t<TVector>::isDynamic>>
+template <typename TFunctor, typename TVector, typename = std::enable_if_t<IsVector<std::decay_t<TVector>>::value>>
 auto hessian(TFunctor&& functor, TVector&& vector) {
-    constexpr size_t N = vectorSize<std::decay_t<TVector>>;
     using ExprType = std::decay_t<decltype(functor(std::forward<TVector>(vector)))>;
-    using T = ExpressionInfo<ExprType>::Type;
-    SMatrix<T, N, N> result;
-    for (size_t r = 0; r < N; ++r) {
-        for (size_t c = 0; c < N; ++c) {
+    using T     = ExpressionInfo<ExprType>::Type;
+    using Vec   = std::decay_t<TVector>;
+    auto result = [&vector]() {
+        if constexpr (Vec::isDynamic) {
+            return Matrix<Vector<T>>(vector.dimension(), vector.dimension());
+        } else {
+            constexpr size_t N = vectorSize<Vec>;
+            return SMatrix<T, N, N>{};
+        }
+    }();
+    for (size_t r = 0; r < result.rows(); ++r) {
+        for (size_t c = 0; c < result.cols(); ++c) {
             using VectorType = typename std::decay_t<TVector>::Type;
-            auto wrt = withRespectTo(std::forward<VectorType>(vector[r]), std::forward<VectorType>(vector[c]));
+            auto wrt = withRespectTo(std::forward<VectorType>(vector[r]),
+                                     std::forward<VectorType>(vector[c]));
             auto d = computeDerivative(functor, wrt, std::forward<TVector>(vector));
             result(r, c) = getDerivative<2>(d);
         }
@@ -255,21 +262,53 @@ auto jacobian(const Functions<TFunctors...>& functions, TArgs&&... args) {
     return result;
 }
 
-template <typename... TFunctors, typename TVector, typename = std::enable_if_t<!std::decay_t<TVector>::isDynamic>>
+template <typename... TFunctors,
+          typename TVector,
+          typename = std::enable_if_t<IsVector<std::decay_t<TVector>>::value && !std::decay_t<TVector>::isDynamic>>
 auto jacobian(const Functions<TFunctors...>& functions, TVector&& vector) {
-    constexpr size_t cols = vectorSize<std::decay_t<TVector>>;
-    constexpr size_t rows = sizeof...(TFunctors);
     using ExprType =
     std::decay_t<decltype(functions.template compute<0>(std::forward<TVector>(vector)))>;
-    using T = ExpressionInfo<ExprType>::Type;
+    using T               = ExpressionInfo<ExprType>::Type;
+    using Vec             = std::decay_t<TVector>;
+    constexpr size_t cols = vectorSize<std::decay_t<TVector>>;
+    constexpr size_t rows = sizeof...(TFunctors);
     SMatrix<T, rows, cols> result;
     jacobianRowVector<0>(result, functions, std::forward<TVector>(vector));
+    return result;
+}
+
+
+template <typename TFunctor,
+          typename TVector,
+          typename = std::enable_if_t<IsVector<std::decay_t<TVector>>::value && std::decay_t<TVector>::isDynamic>>
+auto jacobian(const std::vector<TFunctor>& functions, TVector&& vector) {
+    using ExprType =
+    std::decay_t<decltype(functions[0](std::forward<TVector>(vector)))>;
+    using T   = ExpressionInfo<ExprType>::Type;
+    using Vec = std::decay_t<TVector>;
+    Matrix<Vector<T>> result(functions.size(), vector.dimension());
+    for (size_t r = 0; r < result.rows(); ++r) {
+        for (size_t c = 0; c < result.cols(); ++c) {
+            auto wrt = withRespectTo(
+            std::forward<typename std::decay_t<TVector>::Type>(vector[c]));
+            auto d       = functions[r](std::forward<TVector>(vector));
+            result(r, c) = getDerivative<1>(d);
+        }
+    }
     return result;
 }
 
 template <typename TFunctor, typename... TArgs>
 auto gradient(TFunctor&& functor, TArgs&&... args) {
     return jacobian(Functions(functor), std::forward<TArgs>(args)...)[0];
+}
+
+template <typename TFunctor,
+          typename TVector,
+          typename = std::enable_if_t<IsVector<std::decay_t<TVector>>::value && std::decay_t<TVector>::isDynamic>>
+auto gradient(TFunctor&& functor, TVector&& vector) {
+    return jacobian(std::vector<std::decay_t<TFunctor>>{ functor },
+                    std::forward<TVector>(vector))[0];
 }
 
 } // namespace OptiSik

@@ -335,7 +335,7 @@ TEST(AutoDiff, Gradient) {
     Exp3 b          = 4.0;
     Exp3 c          = 5.0;
     const auto func = [](Exp3 a, Exp3 b, Exp3 c) {
-        return a*a + b*b*b + c*c*c*c;
+        return a * a + b * b * b + c * c * c * c;
     };
     SVector<double, 3> result = gradient(func, a, b, c);
     EXPECT_DOUBLE_EQ(result[0], 6.0);
@@ -423,10 +423,11 @@ TEST(AutoDiff, VectorFunction) {
     Exp3 b          = 4.0;
     Exp3 c          = 5.0;
     const auto func = [](Vector<Exp3> x) {
-        return abs(sin(x[0] + exp(x[1])) * log(x[2]) + pow(x[0], x[1]) * atan2(x[1], x[2]) / sinh(x[0]));
+        return abs(sin(x[0] + exp(x[1])) * log(x[2]) +
+                   pow(x[0], x[1]) * atan2(x[1], x[2]) / sinh(x[0]));
     };
-    Vector<Exp3> x({a,b,c});
-    SVector<double, 3> result = derivative(func, withRespectTo(x[0],x[1],x[2]), x);
+    Vector<Exp3> x({ a, b, c });
+    SVector<double, 3> result = derivative(func, withRespectTo(x[0], x[1], x[2]), x);
     EXPECT_DOUBLE_EQ(result[0], 2.5929686716269345);
     EXPECT_DOUBLE_EQ(result[1], -72.089431210219814);
     EXPECT_DOUBLE_EQ(result[2], -10.030853028022817);
@@ -439,7 +440,7 @@ TEST(AutoDiff, VectorHessian) {
     const auto func = [](SVector<Exp2, 2> x) {
         return pow<3>(x[0]) - 2 * x[0] * x[1] - pow<6>(x[1]);
     };
-    SVector<Exp2, 2> v({x,y});
+    SVector<Exp2, 2> v({ x, y });
     EXPECT_DOUBLE_EQ(getDerivative<2>(computeDerivative(func, withRespectTo(v[0], v[0]), v)), 6.0);
     EXPECT_DOUBLE_EQ(getDerivative<2>(computeDerivative(func, withRespectTo(v[0], v[1]), v)),
                      -2.0);
@@ -454,18 +455,41 @@ TEST(AutoDiff, VectorHessian) {
     EXPECT_DOUBLE_EQ(result(1, 1), -480.0);
 }
 
+TEST(AutoDiff, VectorHessianDynamic) {
+    using Exp2      = Expression2<double>;
+    Exp2 x          = 1.0;
+    Exp2 y          = 2.0;
+    const auto func = [](SVector<Exp2, 2> x) {
+        return pow<3>(x[0]) - 2 * x[0] * x[1] - pow<6>(x[1]);
+    };
+    Vector<Exp2> v({ x, y });
+    EXPECT_DOUBLE_EQ(getDerivative<2>(computeDerivative(func, withRespectTo(v[0], v[0]), v)), 6.0);
+    EXPECT_DOUBLE_EQ(getDerivative<2>(computeDerivative(func, withRespectTo(v[0], v[1]), v)),
+                     -2.0);
+    EXPECT_DOUBLE_EQ(getDerivative<2>(computeDerivative(func, withRespectTo(v[1], v[0]), v)),
+                     -2.0);
+    EXPECT_DOUBLE_EQ(getDerivative<2>(computeDerivative(func, withRespectTo(v[1], v[1]), v)),
+                     -480.0);
+    Matrix<Vector<double>> result = hessian(func, v);
+    EXPECT_DOUBLE_EQ(result(0, 0), 6.0);
+    EXPECT_DOUBLE_EQ(result(0, 1), -2.0);
+    EXPECT_DOUBLE_EQ(result(1, 0), -2.0);
+    EXPECT_DOUBLE_EQ(result(1, 1), -480.0);
+}
+
 TEST(AutoDiff, VectorJacobian) {
     using Exp3       = Expression3<double>;
     Exp3 a           = 3.0;
     Exp3 b           = 4.0;
     Exp3 c           = 5.0;
-     const auto func1 = [](Vector<Exp3> x) {
-        return abs(sin(x[0] + exp(x[1])) * log(x[2]) + pow(x[0], x[1]) * atan2(x[1], x[2]) / sinh(x[0]));
+    const auto func1 = [](Vector<Exp3> x) {
+        return abs(sin(x[0] + exp(x[1])) * log(x[2]) +
+                   pow(x[0], x[1]) * atan2(x[1], x[2]) / sinh(x[0]));
     };
     const auto func2 = [](Vector<Exp3> x) {
         return x[0] * x[0] + pow<8>(x[1]) + abs(x[2]);
     };
-    SVector<Exp3, 3> x({a,b,c});
+    SVector<Exp3, 3> x({ a, b, c });
     SMatrix<double, 2, 3> test;
     test(0, 0) = getDerivative<1>(computeDerivative(func1, withRespectTo(x[0]), x));
     test(0, 1) = getDerivative<1>(computeDerivative(func1, withRespectTo(x[1]), x));
@@ -477,27 +501,65 @@ TEST(AutoDiff, VectorJacobian) {
     EXPECT_TRUE(result == test);
 }
 
+TEST(AutoDiff, VectorJacobianDynamic) {
+    using Exp3       = Expression3<double>;
+    Exp3 a           = 3.0;
+    Exp3 b           = 4.0;
+    Exp3 c           = 5.0;
+    const auto func1 = [](Vector<Exp3> x) {
+        return abs(sin(x[0] + exp(x[1])) * log(x[2]) +
+                   pow(x[0], x[1]) * atan2(x[1], x[2]) / sinh(x[0]));
+    };
+    const auto func2 = [](Vector<Exp3> x) {
+        return x[0] * x[0] + pow<8>(x[1]) + abs(x[2]);
+    };
+    Vector<Exp3> x({ a, b, c });
+    SMatrix<double, 2, 3> test;
+    test(0, 0) = getDerivative<1>(computeDerivative(func1, withRespectTo(x[0]), x));
+    test(0, 1) = getDerivative<1>(computeDerivative(func1, withRespectTo(x[1]), x));
+    test(0, 2) = getDerivative<1>(computeDerivative(func1, withRespectTo(x[2]), x));
+    test(1, 0) = getDerivative<1>(computeDerivative(func2, withRespectTo(x[0]), x));
+    test(1, 1) = getDerivative<1>(computeDerivative(func2, withRespectTo(x[1]), x));
+    test(1, 2) = getDerivative<1>(computeDerivative(func2, withRespectTo(x[2]), x));
+    Matrix<Vector<double>> result =
+    jacobian(std::vector<std::function<Exp3(Vector<Exp3>)>>{ func1, func2 }, x);
+    EXPECT_TRUE(result == test);
+}
+
 TEST(AutoDiff, VectorGradient) {
     using Exp3      = Expression3<double>;
     Exp3 a          = 3.0;
     Exp3 b          = 4.0;
     Exp3 c          = 5.0;
     const auto func = [](Vector<Exp3> x) {
-        return x[0]*x[0] + x[1]*x[1]*x[1] + x[2]*x[2]*x[2]*x[2];
+        return x[0] * x[0] + x[1] * x[1] * x[1] + x[2] * x[2] * x[2] * x[2];
     };
-    SVector<Exp3, 3> x({a,b,c});
+    SVector<Exp3, 3> x({ a, b, c });
     SVector<double, 3> result = gradient(func, x);
     EXPECT_DOUBLE_EQ(result[0], 6.0);
     EXPECT_DOUBLE_EQ(result[1], 48.0);
     EXPECT_DOUBLE_EQ(result[2], 500.0);
 }
 
-TEST(AutoDiff, Gradient1) {
+TEST(AutoDiff, VectorGradientDynamic) {
     using Exp3      = Expression3<double>;
     Exp3 a          = 3.0;
-    const auto func = [](Exp3 x) {
-        return x * x * x;
+    Exp3 b          = 4.0;
+    Exp3 c          = 5.0;
+    const auto func = [](Vector<Exp3> x) {
+        return x[0] * x[0] + x[1] * x[1] * x[1] + x[2] * x[2] * x[2] * x[2];
     };
+    Vector<Exp3> x({ a, b, c });
+    Vector<double> result = gradient(func, x);
+    EXPECT_DOUBLE_EQ(result[0], 6.0);
+    EXPECT_DOUBLE_EQ(result[1], 48.0);
+    EXPECT_DOUBLE_EQ(result[2], 500.0);
+}
+
+TEST(AutoDiff, Gradient1) {
+    using Exp3                = Expression3<double>;
+    Exp3 a                    = 3.0;
+    const auto func           = [](Exp3 x) { return x * x * x; };
     SVector<double, 1> result = gradient(func, a);
     EXPECT_DOUBLE_EQ(result[0], 27.0);
 }
