@@ -2,16 +2,14 @@
 
 #include "data/derivative.h"
 #include "data/vector.h"
-#include "optimizers/common.h"
 #include <cmath>
 
 namespace OptiSik {
 
-/// Simple gradient descent optimizer for unconstrained minimization
+/// Solver for finding roots of a function
 template <typename T, typename TVector = Vector<T>>
-class GradientDescent {
+class NewtonSolver {
 public:
-
     using Config = OptimizationConfig<T>;
     using Result = OptimizationResult<T, TVector>;
 
@@ -21,10 +19,10 @@ public:
     /// @param gradientFunc Gradient of the objective function
     /// @param config Configuration parameters
     template <typename TFunction, typename TGradient>
-    static Result minimize(const TVector& x0,
-                           const TFunction& objectiveFunc,
-                           const TGradient& gradientFunc,
-                           const Config& config = Config()) {
+    static Result solve(const TVector& x0,
+                        const TFunction& objectiveFunc,
+                        const TGradient& gradientFunc,
+                        const Config& config = Config()) {
         TVector x = x0;
         for (size_t iter = 0; iter < config.maxIterations; ++iter) {
             const T fval    = objectiveFunc(x);
