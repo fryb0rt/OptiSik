@@ -1,8 +1,8 @@
 #pragma once
 
+#include "data/derivative.h"
 #include "data/vector.h"
 #include <cmath>
-#include <functional>
 
 namespace OptiSik {
 
