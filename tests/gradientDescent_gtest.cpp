@@ -26,7 +26,7 @@ TEST(GradientDescentTest, SimpleQuadratic) {
 
     EXPECT_TRUE(result.converged);
     EXPECT_NEAR(result.x[0], 0.0, 1e-4);
-    EXPECT_NEAR(result.value, 0.0, 1e-6);
+    EXPECT_NEAR(objective(result.x), 0.0, 1e-6);
 }
 
 TEST(GradientDescentTest, Rosenbrock1D) {
@@ -83,7 +83,7 @@ TEST(GradientDescentTest, Multivariate) {
     EXPECT_TRUE(result.converged);
     EXPECT_NEAR(result.x[0], 2.0, 1e-4);
     EXPECT_NEAR(result.x[1], 3.0, 1e-4);
-    EXPECT_NEAR(result.value, 0.0, 1e-6);
+    EXPECT_NEAR(objective(result.x), 0.0, 1e-6);
 }
 
 TEST(GradientDescentTest, MultivariateAuto) {
@@ -116,7 +116,7 @@ TEST(GradientDescentTest, MultivariateAuto) {
     EXPECT_TRUE(result.converged);
     EXPECT_NEAR(result.x[0], 2.0, 1e-4);
     EXPECT_NEAR(result.x[1], 3.0, 1e-4);
-    EXPECT_NEAR(result.value, 0.0, 1e-6);
+    EXPECT_NEAR(objective(result.x[0],result.x[1]), 0.0, 1e-6);
 }
 
 TEST(GradientDescentTest, MultivariateFullAuto) {
@@ -142,5 +142,5 @@ TEST(GradientDescentTest, MultivariateFullAuto) {
     EXPECT_TRUE(result.converged);
     EXPECT_NEAR(result.x[0], 2.0, 1e-4);
     EXPECT_NEAR(result.x[1], 3.0, 1e-4);
-    EXPECT_NEAR(result.value, 0.0, 1e-6);
+    EXPECT_NEAR(objective(result.x), 0.0, 1e-6);
 }

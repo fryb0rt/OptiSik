@@ -11,7 +11,6 @@ namespace OptiSik {
 template <typename T, typename TVector = Vector<T>>
 class GradientDescent {
 public:
-
     using Config = OptimizationConfig<T>;
     using Result = OptimizationResult<T, TVector>;
 
@@ -34,7 +33,7 @@ public:
             T gradNorm = grad.magnitude();
 
             if (gradNorm < config.tolerance) {
-                return Result(std::move(x), fval, iter + 1, true);
+                return Result(std::move(x), iter + 1, true);
             }
 
             // Update step: x = x - learningRate * grad
@@ -42,7 +41,7 @@ public:
         }
 
         // Did not converge
-        return Result(std::move(x), objectiveFunc(x), config.maxIterations, false);
+        return Result(std::move(x), config.maxIterations, false);
     }
 
     /// Minimize f(x) using gradient descent with automatic differentiation

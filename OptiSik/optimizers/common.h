@@ -16,11 +16,10 @@ struct OptimizationConfig {
 template <typename T, typename TVector = Vector<T>>
 struct OptimizationResult {
     TVector x;
-    T value;
     size_t iterations;
     bool converged;
-    Result(TVector&& x, T value, size_t iterations, bool converged)
-    : x(std::move(x)), value(value), iterations(iterations), converged(converged) {
+    OptimizationResult(TVector&& x, size_t iterations, bool converged)
+    : x(std::move(x)), iterations(iterations), converged(converged) {
     }
 };
 
